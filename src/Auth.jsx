@@ -118,7 +118,6 @@ export function AuthScreen({ supabase }) {
               <button type="button" role="tab" aria-selected={!isSignUp} className={!isSignUp ? 'active' : ''} onClick={() => changeMode('sign-in')}>Anmelden</button>
               <button type="button" role="tab" aria-selected={isSignUp} className={isSignUp ? 'active' : ''} onClick={() => changeMode('sign-up')}>Konto erstellen</button>
             </div>
-            {!supabase && <p className="auth-feedback auth-info" role="status">Zum Aktivieren muss Supabase eingerichtet werden. <a href="https://github.com/fred482/messenger/blob/main/AUTH_SETUP.md" target="_blank" rel="noreferrer">Einrichtung öffnen</a>.</p>}
             <form className="modal-form auth-form" onSubmit={handleSubmit}>
               {isSignUp && <label>Name<input type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Dein Name" required /></label>}
               {isSignUp && <label>Benutzername<input type="text" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="z.B. max_muster" minLength={3} maxLength={24} pattern="[A-Za-z0-9_]{3,24}" required /></label>}
@@ -127,7 +126,7 @@ export function AuthScreen({ supabase }) {
               {isSignUp && <label>Passwort bestätigen<input type="password" autoComplete="new-password" minLength={8} value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} placeholder="Passwort wiederholen" required /></label>}
               {error && <p className="auth-feedback auth-error" role="alert">{error}</p>}
               {notice && <p className="auth-feedback auth-success" role="status">{notice}</p>}
-              <button className="primary-button" type="submit" disabled={busy || !supabase}>{busy ? 'Bitte warten …' : isSignUp ? 'Konto erstellen' : 'Anmelden'} <ArrowRight size={16} /></button>
+              <button className="primary-button" type="submit" disabled={busy || !supabase}>{busy ? 'Bitte warten …' : !supabase ? 'Demnächst verfügbar' : isSignUp ? 'Konto erstellen' : 'Anmelden'} <ArrowRight size={16} /></button>
             </form>
             <p className="auth-form-footnote"><ShieldCheck size={13} /> Die Anmeldung wird sicher von Supabase verwaltet.</p>
           </div>

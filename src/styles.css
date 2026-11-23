@@ -148,8 +148,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .auth-feedback { margin: 0; padding: 10px; border-radius: 5px; font-size: 11px; line-height: 1.5; }
 .auth-error { color: #9c4e49; background: #fbefed; }
 .auth-success { color: #356c55; background: #edf6ef; }
-.auth-info { color: #596c60; background: #edf3ee; }
-.auth-info a { color: #277e66; font-weight: 700; }
 .auth-form .primary-button:disabled { opacity: .7; cursor: wait; }
 .modal-form fieldset { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; border: 0; }
 .modal-form legend { margin-bottom: 8px; color: #59635e; font-size: 11px; font-weight: 600; }
