@@ -16,4 +16,6 @@ Only the publishable key is used by this browser application. Never put a Clerk 
 
 ## GitHub Pages
 
-For the Pages deployment, add a repository Actions variable named `VITE_CLERK_PUBLISHABLE_KEY` under **Settings → Secrets and variables → Actions → Variables**. Set the Clerk application's allowed origin and redirect URLs to the deployed Pages URL (`https://fred482.github.io/messenger/`). The Pages build uses this variable; without it, the deployed app shows the setup screen.
+In **Settings → Pages**, set the source to **GitHub Actions**. The workflow deploys on each push to `main`.
+
+Add a repository Actions variable named `VITE_CLERK_PUBLISHABLE_KEY` under **Settings → Secrets and variables → Actions → Variables**. Set the Clerk application's allowed origin and redirect URLs to the deployed Pages URL (`https://fred482.github.io/messenger/`). The Pages build uses this variable; without it, the deployed app shows the setup screen.
