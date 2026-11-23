@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowDownLeft,
   ArrowLeft,
@@ -96,6 +96,25 @@ function Avatar({ chat, size = 'normal' }) {
   )
 }
 
+function contactToChat(profile) {
+  const name = profile.display_name || profile.username
+  const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+  return {
+    id: profile.id,
+    username: profile.username,
+    name,
+    email: `@${profile.username}`,
+    initials,
+    color: 'blue',
+    online: false,
+    time: 'Neu',
+    unread: 0,
+    preview: 'Noch keine Nachrichten',
+    messages: [],
+    savedContact: true,
+  }
+}
+
 function App({ user, supabase }) {
   const [chats, setChats] = useState(initialChats)
   const [activeId, setActiveId] = useState('lena')
@@ -104,9 +123,14 @@ function App({ user, supabase }) {
   const [detailsOpen, setDetailsOpen] = useState(() => window.matchMedia('(min-width: 1081px)').matches)
   const [dialog, setDialog] = useState(null)
   const [notice, setNotice] = useState('')
+  const [contactUsername, setContactUsername] = useState('')
+  const [contactResult, setContactResult] = useState(null)
+  const [contactError, setContactError] = useState('')
+  const [contactBusy, setContactBusy] = useState(false)
   const messageEnd = useRef(null)
 
   const accountEmail = user?.email ?? ''
+  const accountUsername = user?.user_metadata?.username
   const accountName = user?.user_metadata?.full_name || accountEmail || 'Dein Konto'
   const accountInitial = accountName.charAt(0).toUpperCase()
   const activeChat = chats.find((chat) => chat.id === activeId) ?? chats[0]
@@ -120,6 +144,29 @@ function App({ user, supabase }) {
     setNotice(text)
     window.setTimeout(() => setNotice(''), 3200)
   }
+
+  useEffect(() => {
+    let active = true
+
+    async function loadContacts() {
+      try {
+        const { data, error } = await supabase.rpc('list_my_contacts')
+        if (error) {
+          if (active) showNotice(`Kontakte konnten nicht geladen werden: ${error.message}`)
+          return
+        }
+        if (!active) return
+        setChats((current) => [...(data ?? []).map(contactToChat), ...current.filter((chat) => !chat.savedContact)])
+      } catch (loadError) {
+        if (active) {
+          showNotice(`Kontakte konnten nicht geladen werden: ${loadError instanceof Error ? loadError.message : 'Unbekannter Fehler.'}`)
+        }
+      }
+    }
+
+    loadContacts()
+    return () => { active = false }
+  }, [supabase, user.id])
 
   async function signOutAccount() {
     try {
@@ -142,21 +189,73 @@ function App({ user, supabase }) {
     window.setTimeout(() => messageEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 40)
   }
 
-  function addContact(event) {
+  function openContactDialog() {
+    setContactUsername('')
+    setContactResult(null)
+    setContactError('')
+    setDialog('contact')
+  }
+
+  async function findContact(event) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
-    const email = String(form.get('email') ?? '').trim().toLowerCase()
-    const name = String(form.get('name') ?? '').trim()
-    if (!email || !name) return
-    if (chats.some((chat) => chat.email === email)) {
-      showNotice('Dieser Kontakt ist bereits in deiner Liste.')
+    const username = String(form.get('username') ?? '').trim().replace(/^@/, '').toLowerCase()
+    setContactUsername(username)
+    setContactResult(null)
+    setContactError('')
+
+    if (!/^[a-z0-9_]{3,24}$/.test(username)) {
+      setContactError('Benutzernamen müssen 3–24 Zeichen lang sein und dürfen nur Buchstaben, Zahlen und _ enthalten.')
       return
     }
-    const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
-    const chat = { id: crypto.randomUUID(), name, email, initials, color: 'blue', online: false, time: 'Neu', unread: 0, preview: 'Noch keine Nachrichten', messages: [] }
-    setChats((current) => [chat, ...current])
-    setActiveId(chat.id)
-    setDialog(null)
+
+    setContactBusy(true)
+    try {
+      const { data, error } = await supabase.rpc('find_profile_by_username', { search_username: username })
+      if (error) {
+        setContactError(error.message)
+        return
+      }
+
+      const profile = data?.[0]
+      if (!profile) {
+        setContactError('Kein Konto mit diesem Benutzernamen gefunden.')
+        return
+      }
+      if (chats.some((chat) => chat.id === profile.id)) {
+        setContactError('Dieser Kontakt ist bereits in deiner Liste.')
+        return
+      }
+      setContactResult(profile)
+    } catch (searchError) {
+      setContactError(searchError instanceof Error ? searchError.message : 'Unbekannter Fehler bei der Suche.')
+    } finally {
+      setContactBusy(false)
+    }
+  }
+
+  async function addContact() {
+    if (!contactResult) return
+    setContactBusy(true)
+    setContactError('')
+    try {
+      const { error } = await supabase.from('contacts').insert({ contact_id: contactResult.id })
+      if (error) {
+        setContactError(error.code === '23505'
+          ? 'Dieser Kontakt ist bereits in deiner Liste.'
+          : error.message)
+        return
+      }
+
+      const chat = contactToChat(contactResult)
+      setChats((current) => [chat, ...current.filter((existing) => existing.id !== chat.id)])
+      setActiveId(chat.id)
+      setDialog(null)
+    } catch (saveError) {
+      setContactError(saveError instanceof Error ? saveError.message : 'Unbekannter Fehler beim Speichern.')
+    } finally {
+      setContactBusy(false)
+    }
   }
 
   return (
@@ -170,13 +269,13 @@ function App({ user, supabase }) {
 
         <div className="account-chip">
           <div className="account-avatar">{accountInitial}</div>
-          <div className="account-copy"><strong>{accountName}</strong><span>{accountEmail}</span></div>
+          <div className="account-copy"><strong>{accountName}</strong><span>{accountUsername ? `@${accountUsername}` : accountEmail}</span></div>
           <ChevronDown size={16} className="muted-icon" />
         </div>
 
         <div className="section-label-row">
           <span className="section-label">NACHRICHTEN</span>
-          <button className="icon-button new-chat" aria-label="Neuen Chat starten" title="Neuen Chat starten" onClick={() => setDialog('contact')}><Plus size={18} /></button>
+          <button className="icon-button new-chat" aria-label="Neuen Chat starten" title="Neuen Chat starten" onClick={openContactDialog}><Plus size={18} /></button>
         </div>
 
         <label className="search-box">
@@ -210,7 +309,7 @@ function App({ user, supabase }) {
         <header className="conversation-header">
           <button className="icon-button back-button" aria-label="Zurück zu Chats" onClick={() => setDetailsOpen(false)}><ArrowLeft size={19} /></button>
           {activeChat && <Avatar chat={activeChat} size="small" />}
-          <div className="conversation-person"><strong>{activeChat?.name}</strong><span>{activeChat?.online ? 'Gerade online' : activeChat?.email}</span></div>
+          <div className="conversation-person"><strong>{activeChat?.name}</strong><span>{activeChat?.online ? 'Gerade online' : activeChat?.username ? `@${activeChat.username}` : activeChat?.email}</span></div>
           <div className="header-actions">
             <div className="encryption-pill"><LockKeyhole size={13} /><span>Demo-Modus</span></div>
             <button className={`icon-button details-toggle ${detailsOpen ? 'selected' : ''}`} aria-label="Sicherheitsdetails anzeigen" title="Sicherheitsdetails" onClick={() => setDetailsOpen((open) => !open)}><SlidersHorizontal size={18} /></button>
@@ -246,7 +345,7 @@ function App({ user, supabase }) {
       {detailsOpen && <aside className="details-panel">
         <div className="details-top"><span>CHAT-DETAILS</span><button className="icon-button" aria-label="Details schließen" onClick={() => setDetailsOpen(false)}><X size={17} /></button></div>
         {activeChat && <>
-          <div className="contact-profile"><Avatar chat={activeChat} size="large" /><h2>{activeChat.name}</h2><p>{activeChat.email}</p><span className={`contact-presence ${activeChat.online ? 'is-online' : ''}`}><i />{activeChat.online ? 'Online' : 'Zuletzt gesehen: gestern'}</span></div>
+          <div className="contact-profile"><Avatar chat={activeChat} size="large" /><h2>{activeChat.name}</h2><p>{activeChat.username ? `@${activeChat.username}` : activeChat.email}</p><span className={`contact-presence ${activeChat.online ? 'is-online' : ''}`}><i />{activeChat.online ? 'Online' : 'Zuletzt gesehen: gestern'}</span></div>
           <div className="detail-rule" />
           <div className="security-heading"><span className="security-icon"><ShieldCheck size={18} /></span><div><strong>Sicherheit</strong><small>Für echte Chats geplant</small></div></div>
           <div className="security-row"><span>Ende-zu-Ende-Verschlüsselung</span><span className="status-planned">Nicht aktiv</span></div>
@@ -266,12 +365,13 @@ function App({ user, supabase }) {
           {dialog === 'contact' ? <>
             <div className="modal-icon"><Plus size={20} /></div>
             <h2 id="modal-title">Neuen Chat starten</h2>
-            <p className="modal-description">Füge jemanden über die E-Mail-Adresse hinzu. Eine Telefonnummer ist nicht nötig.</p>
-            <form className="modal-form" onSubmit={addContact}>
-              <label>Name<input name="name" placeholder="Vor- und Nachname" required autoFocus /></label>
-              <label>E-Mail-Adresse<input name="email" type="email" placeholder="name@beispiel.de" required /></label>
-              <button className="primary-button" type="submit">Kontakt hinzufügen <ArrowDownLeft size={16} /></button>
+            <p className="modal-description">Suche nach dem eindeutigen Benutzernamen. Die Person muss bereits ein Konto erstellt haben.</p>
+            <form className="modal-form" onSubmit={findContact}>
+              <label>Benutzername<input name="username" value={contactUsername} onChange={(event) => setContactUsername(event.target.value)} placeholder="z.B. max_muster" minLength={3} maxLength={24} required autoFocus /></label>
+              {contactError && <p className="auth-feedback auth-error" role="alert">{contactError}</p>}
+              <button className="primary-button" type="submit" disabled={contactBusy}>{contactBusy ? 'Suche …' : 'Suchen'} <Search size={16} /></button>
             </form>
+            {contactResult && <div className="contact-search-result"><Avatar chat={contactToChat(contactResult)} /><span><strong>{contactResult.display_name}</strong><small>@{contactResult.username}</small></span><button className="primary-button" onClick={addContact} disabled={contactBusy}>Hinzufügen <Plus size={15} /></button></div>}
           </> : <>
             <div className="modal-icon"><Settings2 size={20} /></div>
             <h2 id="modal-title">Konto & Sicherheit</h2>

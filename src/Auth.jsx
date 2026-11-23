@@ -4,6 +4,7 @@ import { ArrowRight, LockKeyhole, Mail, MessageCircle, ShieldCheck } from 'lucid
 export function AuthScreen({ supabase }) {
   const [mode, setMode] = useState('sign-up')
   const [name, setName] = useState('')
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
@@ -35,21 +36,43 @@ export function AuthScreen({ supabase }) {
       return
     }
 
+    const normalizedUsername = username.trim().toLowerCase()
+    if (isSignUp && !/^[a-z0-9_]{3,24}$/.test(normalizedUsername)) {
+      setError('Der Benutzername muss 3–24 Zeichen lang sein und darf nur Buchstaben, Zahlen und _ enthalten.')
+      return
+    }
+
     setBusy(true)
 
     try {
       if (isSignUp) {
+        const { data: usernameAvailable, error: usernameError } = await supabase.rpc('is_username_available', {
+          candidate_username: normalizedUsername,
+        })
+
+        if (usernameError) {
+          setError(usernameError.message)
+          return
+        }
+
+        if (!usernameAvailable) {
+          setError('Dieser Benutzername ist bereits vergeben.')
+          return
+        }
+
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: {
             emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
-            data: { full_name: name.trim() },
+            data: { full_name: name.trim(), username: normalizedUsername },
           },
         })
 
         if (signUpError) {
-          setError(signUpError.message)
+          setError(signUpError.code === '23505' || signUpError.message.includes('USERNAME_TAKEN')
+            ? 'Dieser Benutzername ist bereits vergeben.'
+            : signUpError.message)
           return
         }
 
@@ -57,6 +80,7 @@ export function AuthScreen({ supabase }) {
           setNotice('Öffne deine E-Mail und klicke auf den Bestätigungslink. Danach wirst du angemeldet.')
           setPassword('')
           setPasswordConfirmation('')
+          setUsername('')
         }
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -97,6 +121,7 @@ export function AuthScreen({ supabase }) {
             {!supabase && <p className="auth-feedback auth-info" role="status">Zum Aktivieren muss Supabase eingerichtet werden. <a href="https://github.com/fred482/messenger/blob/main/AUTH_SETUP.md" target="_blank" rel="noreferrer">Einrichtung öffnen</a>.</p>}
             <form className="modal-form auth-form" onSubmit={handleSubmit}>
               {isSignUp && <label>Name<input type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Dein Name" required /></label>}
+              {isSignUp && <label>Benutzername<input type="text" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="z.B. max_muster" minLength={3} maxLength={24} pattern="[A-Za-z0-9_]{3,24}" required /></label>}
               <label>E-Mail-Adresse<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@beispiel.de" required /></label>
               <label>Passwort<input type="password" autoComplete={isSignUp ? 'new-password' : 'current-password'} minLength={isSignUp ? 8 : undefined} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignUp ? 'Mindestens 8 Zeichen' : 'Dein Passwort'} required /></label>
               {isSignUp && <label>Passwort bestätigen<input type="password" autoComplete="new-password" minLength={8} value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} placeholder="Passwort wiederholen" required /></label>}

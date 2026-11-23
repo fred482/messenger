@@ -5,8 +5,9 @@
 3. In **Authentication → URL Configuration**, set the Site URL to `https://fred482.github.io/messenger/` and add that URL to the redirect allow list. Add `http://localhost:5173/` for local development.
 4. In **Project Settings → API**, copy the Project URL and the public publishable key.
 5. Add repository Actions variables named `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` under **Settings → Secrets and variables → Actions → Variables**. The Pages workflow uses them on its next run.
+6. In the Supabase SQL Editor, run [`supabase/migrations/20261123093000_profiles_and_contacts.sql`](./supabase/migrations/20261123093000_profiles_and_contacts.sql) to create profiles, unique usernames, and saved contacts.
 
-After sign-up, Supabase sends the email confirmation link automatically. Opening it confirms the address and redirects back to the app, where the user is signed in. The registration also stores the entered name on the Supabase user profile.
+Users choose a unique username of 3–24 letters, numbers, or underscores during sign-up. Usernames are normalized to lowercase and enforced as unique in the database. After sign-up, Supabase sends the email confirmation link automatically. Opening it confirms the address and redirects back to the app, where the user is signed in. They can then search for other registered users by username; only confirmed accounts are discoverable. The registration stores the name and username on the Supabase user profile.
 
 ## Send from your Gmail address
 
