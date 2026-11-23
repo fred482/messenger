@@ -25,9 +25,11 @@ export function AuthSetup() {
 }
 
 export function AuthScreen({ supabase }) {
-  const [mode, setMode] = useState('sign-in')
+  const [mode, setMode] = useState('sign-up')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
@@ -38,12 +40,19 @@ export function AuthScreen({ supabase }) {
     setMode(nextMode)
     setError('')
     setNotice('')
+    setPasswordConfirmation('')
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
     setNotice('')
+
+    if (isSignUp && password !== passwordConfirmation) {
+      setError('Die Passwörter stimmen nicht überein.')
+      return
+    }
+
     setBusy(true)
 
     try {
@@ -53,6 +62,7 @@ export function AuthScreen({ supabase }) {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+            data: { full_name: name.trim() },
           },
         })
 
@@ -62,7 +72,9 @@ export function AuthScreen({ supabase }) {
         }
 
         if (!data.session) {
-          setNotice('Wenn die Adresse neu ist, haben wir einen Bestätigungslink gesendet. Bitte prüfe dein Postfach.')
+          setNotice('Öffne deine E-Mail und klicke auf den Bestätigungslink. Danach wirst du angemeldet.')
+          setPassword('')
+          setPasswordConfirmation('')
         }
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -101,8 +113,10 @@ export function AuthScreen({ supabase }) {
               <button type="button" role="tab" aria-selected={isSignUp} className={isSignUp ? 'active' : ''} onClick={() => changeMode('sign-up')}>Konto erstellen</button>
             </div>
             <form className="modal-form auth-form" onSubmit={handleSubmit}>
+              {isSignUp && <label>Name<input type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Dein Name" required /></label>}
               <label>E-Mail-Adresse<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@beispiel.de" required /></label>
-              <label>Passwort<input type="password" autoComplete={isSignUp ? 'new-password' : 'current-password'} minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignUp ? 'Mindestens 8 Zeichen' : 'Dein Passwort'} required /></label>
+              <label>Passwort<input type="password" autoComplete={isSignUp ? 'new-password' : 'current-password'} minLength={isSignUp ? 8 : undefined} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignUp ? 'Mindestens 8 Zeichen' : 'Dein Passwort'} required /></label>
+              {isSignUp && <label>Passwort bestätigen<input type="password" autoComplete="new-password" minLength={8} value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} placeholder="Passwort wiederholen" required /></label>}
               {error && <p className="auth-feedback auth-error" role="alert">{error}</p>}
               {notice && <p className="auth-feedback auth-success" role="status">{notice}</p>}
               <button className="primary-button" type="submit" disabled={busy}>{busy ? 'Bitte warten …' : isSignUp ? 'Konto erstellen' : 'Anmelden'} <ArrowRight size={16} /></button>

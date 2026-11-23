@@ -6,7 +6,7 @@
 4. In **Project Settings → API**, copy the Project URL and the public publishable key.
 5. Add repository Actions variables named `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` under **Settings → Secrets and variables → Actions → Variables**. The Pages workflow uses them on its next run.
 
-After sign-up, Supabase sends the email confirmation link automatically. Once the user opens it, they can sign in with their email and password.
+After sign-up, Supabase sends the email confirmation link automatically. Opening it confirms the address and redirects back to the app, where the user is signed in. The registration also stores the entered name on the Supabase user profile.
 
 ## Send from your Gmail address
 
