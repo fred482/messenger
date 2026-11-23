@@ -1,21 +1,5 @@
-import { useEffect, useState } from 'react'
-import { SignIn, SignUp } from '@clerk/react'
-import { ArrowRight, Fingerprint, LockKeyhole, Mail, MessageCircle, ShieldCheck } from 'lucide-react'
-
-const appearance = {
-  variables: {
-    colorPrimary: '#277e66',
-    colorText: '#242a28',
-    colorBackground: '#ffffff',
-    borderRadius: '6px',
-    fontFamily: 'DM Sans, sans-serif',
-  },
-  elements: {
-    rootBox: { width: '100%' },
-    card: { width: '100%', boxShadow: 'none', border: '1px solid #e9ece8' },
-    formButtonPrimary: { backgroundColor: '#277e66' },
-  },
-}
+import { useState } from 'react'
+import { ArrowRight, LockKeyhole, Mail, MessageCircle, ShieldCheck } from 'lucide-react'
 
 export function AuthSetup() {
   return (
@@ -24,32 +8,80 @@ export function AuthSetup() {
         <header className="auth-brand"><span className="brand-mark"><MessageCircle size={19} strokeWidth={2.5} /></span><span className="brand-name">klartext<span>.</span></span></header>
         <div className="setup-content">
           <div className="auth-eyebrow"><LockKeyhole size={14} /> SICHERE ANMELDUNG</div>
-          <h1>Anmeldung einrichten</h1>
-          <p>Die Verbindung zu Clerk fehlt noch. Lege eine Clerk-Anwendung an und hinterlege den öffentlichen Publishable Key, damit Registrierung und Anmeldung funktionieren.</p>
+          <h1>Supabase einrichten</h1>
+          <p>Erstelle ein Supabase-Projekt, aktiviere die E-Mail-Bestätigung und hinterlege die Projekt-URL sowie den öffentlichen Schlüssel.</p>
           <ol className="setup-steps">
-            <li><span>1</span><div><strong>Clerk-Anwendung erstellen</strong><small>Eine Anwendung unter clerk.com anlegen.</small></div></li>
-            <li><span>2</span><div><strong>E-Mail als Anmeldemethode aktivieren</strong><small>E-Mail-Code für Anmeldung und Bestätigung konfigurieren.</small></div></li>
-            <li><span>3</span><div><strong>Schlüssel lokal hinterlegen</strong><small>Den Publishable Key in <code>.env.local</code> eintragen und die App neu starten.</small></div></li>
+            <li><span>1</span><div><strong>Supabase-Projekt erstellen</strong><small>Ein Projekt unter supabase.com/dashboard anlegen und E-Mail-Anmeldung aktivieren.</small></div></li>
+            <li><span>2</span><div><strong>Bestätigungslink konfigurieren</strong><small>Die Site URL und Redirect URL auf https://fred482.github.io/messenger/ setzen.</small></div></li>
+            <li><span>3</span><div><strong>GitHub Actions Variablen hinzufügen</strong><small><code>VITE_SUPABASE_URL</code> und <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> unter Repository Settings → Secrets and variables → Actions → Variables eintragen.</small></div></li>
           </ol>
-          <a className="primary-button setup-link" href="https://dashboard.clerk.com/" target="_blank" rel="noreferrer">Clerk-Dashboard öffnen <ArrowRight size={16} /></a>
-          <div className="modal-note setup-note"><ShieldCheck size={15} /><span>Nur der öffentliche Publishable Key gehört in die Web-App. Ein Secret Key wird hier nicht benötigt und darf nicht im Browser landen.</span></div>
+          <a className="primary-button setup-link" href="https://supabase.com/dashboard" target="_blank" rel="noreferrer">Supabase-Dashboard öffnen <ArrowRight size={16} /></a>
+          <div className="modal-note setup-note"><ShieldCheck size={15} /><span>Nur URL und Publishable Key gehören in die Web-App. Niemals den Secret- oder service_role-Schlüssel veröffentlichen.</span></div>
         </div>
-        <div className="setup-footer"><Mail size={14} /> Keine Telefonnummer erforderlich</div>
+        <div className="setup-footer"><Mail size={14} /> Anmeldung mit E-Mail und Passwort, ohne 2FA</div>
       </section>
     </main>
   )
 }
 
-export function AuthScreen() {
-  const [mode, setMode] = useState(() => window.location.hash === '#/sign-up' ? 'sign-up' : 'sign-in')
-
-  useEffect(() => {
-    const updateMode = () => setMode(window.location.hash === '#/sign-up' ? 'sign-up' : 'sign-in')
-    window.addEventListener('hashchange', updateMode)
-    return () => window.removeEventListener('hashchange', updateMode)
-  }, [])
+export function AuthScreen({ supabase }) {
+  const [mode, setMode] = useState('sign-in')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [busy, setBusy] = useState(false)
 
   const isSignUp = mode === 'sign-up'
+
+  function changeMode(nextMode) {
+    setMode(nextMode)
+    setError('')
+    setNotice('')
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setError('')
+    setNotice('')
+    setBusy(true)
+
+    try {
+      if (isSignUp) {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+          },
+        })
+
+        if (signUpError) {
+          setError(signUpError.message)
+          return
+        }
+
+        if (!data.session) {
+          setNotice('Wenn die Adresse neu ist, haben wir einen Bestätigungslink gesendet. Bitte prüfe dein Postfach.')
+        }
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        })
+
+        if (signInError) {
+          setError(signInError.code === 'email_not_confirmed'
+            ? 'Bitte bestätige zuerst deine E-Mail-Adresse über den Link in deinem Postfach.'
+            : signInError.message)
+        }
+      }
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : 'Ein unbekannter Fehler bei der Anmeldung ist aufgetreten.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <main className="auth-page">
@@ -59,22 +91,26 @@ export function AuthScreen() {
           <div className="auth-copy">
             <div className="auth-eyebrow"><LockKeyhole size={14} /> PRIVAT VERBUNDEN</div>
             <h1>{isSignUp ? 'Dein Konto. Deine Privatsphäre.' : 'Schön, dass du da bist.'}</h1>
-            <p>Mit deiner E-Mail-Adresse anmelden. Eine Telefonnummer brauchst du nicht.</p>
+            <p>Mit deiner E-Mail-Adresse und einem Passwort anmelden. Eine Telefonnummer oder 2FA brauchst du nicht.</p>
             <div className="auth-promise"><span><Mail size={17} /></span><div><strong>E-Mail statt Handynummer</strong><small>Deine Adresse ist deine Anmeldung.</small></div></div>
-            <div className="auth-promise"><span><Fingerprint size={18} /></span><div><strong>Zusätzlicher Geräteschutz</strong><small>Verfügbare Methoden hängen von Konto und Gerät ab.</small></div></div>
+            <div className="auth-promise"><span><ShieldCheck size={18} /></span><div><strong>Bestätigung per E-Mail</strong><small>Ein Link bestätigt dein Konto.</small></div></div>
           </div>
           <div className="auth-form-panel">
             <div className="auth-mode-switch" role="tablist" aria-label="Anmeldemodus">
-              <button role="tab" aria-selected={!isSignUp} className={!isSignUp ? 'active' : ''} onClick={() => { window.location.hash = '/sign-in'; setMode('sign-in') }}>Anmelden</button>
-              <button role="tab" aria-selected={isSignUp} className={isSignUp ? 'active' : ''} onClick={() => { window.location.hash = '/sign-up'; setMode('sign-up') }}>Konto erstellen</button>
+              <button type="button" role="tab" aria-selected={!isSignUp} className={!isSignUp ? 'active' : ''} onClick={() => changeMode('sign-in')}>Anmelden</button>
+              <button type="button" role="tab" aria-selected={isSignUp} className={isSignUp ? 'active' : ''} onClick={() => changeMode('sign-up')}>Konto erstellen</button>
             </div>
-            {isSignUp
-              ? <SignUp routing="hash" signInUrl="#/sign-in" fallbackRedirectUrl="/" appearance={appearance} />
-              : <SignIn routing="hash" signUpUrl="#/sign-up" fallbackRedirectUrl="/" appearance={appearance} />}
-            <p className="auth-form-footnote"><ShieldCheck size={13} /> Anmeldung und E-Mail-Bestätigung laufen sicher über Clerk.</p>
+            <form className="modal-form auth-form" onSubmit={handleSubmit}>
+              <label>E-Mail-Adresse<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@beispiel.de" required /></label>
+              <label>Passwort<input type="password" autoComplete={isSignUp ? 'new-password' : 'current-password'} minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignUp ? 'Mindestens 8 Zeichen' : 'Dein Passwort'} required /></label>
+              {error && <p className="auth-feedback auth-error" role="alert">{error}</p>}
+              {notice && <p className="auth-feedback auth-success" role="status">{notice}</p>}
+              <button className="primary-button" type="submit" disabled={busy}>{busy ? 'Bitte warten …' : isSignUp ? 'Konto erstellen' : 'Anmelden'} <ArrowRight size={16} /></button>
+            </form>
+            <p className="auth-form-footnote"><ShieldCheck size={13} /> Die Anmeldung wird sicher von Supabase verwaltet.</p>
           </div>
         </div>
-        <footer className="auth-footer"><span>KLARTEXT MESSENGER</span><span>Ohne Telefonnummer</span></footer>
+        <footer className="auth-footer"><span>KLARTEXT MESSENGER</span><span>Ohne Telefonnummer und 2FA</span></footer>
       </section>
     </main>
   )

@@ -1,21 +1,24 @@
-# Clerk authentication setup
+# Supabase authentication setup
 
-1. Create a Clerk application at https://dashboard.clerk.com/.
-2. Enable email address sign-in and email verification codes in the Clerk dashboard.
-3. Configure the allowed sign-up methods and redirect URLs for the app's origin.
-4. Copy the **publishable key** into `.env.local`:
+1. Create a Supabase project at https://supabase.com/dashboard/.
+2. In **Authentication → Providers → Email**, enable email/password sign-in and email confirmation. The app does not require user 2FA.
+3. In **Authentication → URL Configuration**, set the Site URL to `https://fred482.github.io/messenger/` and add that URL to the redirect allow list. Add `http://localhost:5173/` for local development.
+4. In **Project Settings → API**, copy the Project URL and the public publishable key.
+5. Add repository Actions variables named `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` under **Settings → Secrets and variables → Actions → Variables**. The Pages workflow uses them on its next run.
 
-   ```env
-   VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
-   ```
+After sign-up, Supabase sends the email confirmation link automatically. Once the user opens it, they can sign in with their email and password.
 
-5. Restart the Vite server. The app shows Clerk's sign-in or sign-up form when signed out and the messenger when signed in.
-6. Configure multi-factor authentication and passkey availability in Clerk's dashboard and user security settings. Available factors depend on the Clerk plan, platform, and account policy.
+## Send from your Gmail address
 
-Only the publishable key is used by this browser application. Never put a Clerk secret key in a `VITE_` variable or client-side code.
+Supabase's default email service is intended for testing and may be rate-limited or restricted. To send confirmation emails to your users from your own address, configure custom SMTP in the Supabase project's authentication email settings. For Gmail, use `smtp.gmail.com` and a Google app password. Google may require 2-Step Verification on the sender's account to create an app password; this does not enable 2FA for users of the messenger. Enter SMTP credentials only in Supabase settings, never in this repository.
 
-## GitHub Pages
+## Local development and key safety
 
-In **Settings → Pages**, set the source to **GitHub Actions**. The workflow deploys on each push to `main`.
+Create `.env.local` with:
 
-Add a repository Actions variable named `VITE_CLERK_PUBLISHABLE_KEY` under **Settings → Secrets and variables → Actions → Variables**. Set the Clerk application's allowed origin and redirect URLs to the deployed Pages URL (`https://fred482.github.io/messenger/`). The Pages build uses this variable; without it, the deployed app shows the setup screen.
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-public-publishable-key
+```
+
+Restart Vite after changing the file. The publishable key is intended for browser use. Never put a Supabase secret or `service_role` key in a `VITE_` variable or client-side code.

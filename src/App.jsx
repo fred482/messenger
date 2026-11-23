@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from 'react'
-import { useClerk, useUser } from '@clerk/react'
 import {
   ArrowDownLeft,
   ArrowLeft,
@@ -8,7 +7,6 @@ import {
   CheckCheck,
   ChevronDown,
   CircleHelp,
-  Fingerprint,
   LockKeyhole,
   LogOut,
   Mail,
@@ -98,9 +96,7 @@ function Avatar({ chat, size = 'normal' }) {
   )
 }
 
-function App() {
-  const { user } = useUser()
-  const { openUserProfile, signOut } = useClerk()
+function App({ user, supabase }) {
   const [chats, setChats] = useState(initialChats)
   const [activeId, setActiveId] = useState('lena')
   const [search, setSearch] = useState('')
@@ -110,8 +106,8 @@ function App() {
   const [notice, setNotice] = useState('')
   const messageEnd = useRef(null)
 
-  const accountEmail = user?.primaryEmailAddress?.emailAddress ?? ''
-  const accountName = user?.fullName || accountEmail || 'Dein Konto'
+  const accountEmail = user?.email ?? ''
+  const accountName = user?.user_metadata?.full_name || accountEmail || 'Dein Konto'
   const accountInitial = accountName.charAt(0).toUpperCase()
   const activeChat = chats.find((chat) => chat.id === activeId) ?? chats[0]
   const visibleChats = useMemo(() => {
@@ -123,6 +119,15 @@ function App() {
   function showNotice(text) {
     setNotice(text)
     window.setTimeout(() => setNotice(''), 3200)
+  }
+
+  async function signOutAccount() {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) showNotice(`Abmelden nicht möglich: ${error.message}`)
+    } catch (signOutError) {
+      showNotice(`Abmelden nicht möglich: ${signOutError instanceof Error ? signOutError.message : 'Unbekannter Fehler.'}`)
+    }
   }
 
   function sendMessage(event) {
@@ -270,11 +275,10 @@ function App() {
           </> : <>
             <div className="modal-icon"><Settings2 size={20} /></div>
             <h2 id="modal-title">Konto & Sicherheit</h2>
-            <p className="modal-description">Angemeldet ohne Telefonnummer. Deine Sicherheitsmethoden werden von Clerk verwaltet.</p>
+            <p className="modal-description">Dein Konto nutzt E-Mail und Passwort. Für die Anmeldung ist keine 2FA erforderlich.</p>
             <div className="signed-in-email"><span>E-Mail-Adresse</span><strong>{accountEmail}</strong></div>
-            <div className="modal-note"><ShieldCheck size={15} /><span>Aktiviere E-Mail-Codes, MFA und verfügbare Passkeys in den Sicherheitseinstellungen deines Kontos und im Clerk-Dashboard.</span></div>
-            <button className="primary-button account-security-button" onClick={() => { setDialog(null); openUserProfile() }}><Fingerprint size={17} /> Konto-Sicherheit verwalten</button>
-            <button className="logout-button" onClick={() => signOut()}><LogOut size={15} /> Abmelden</button>
+            <div className="modal-note"><ShieldCheck size={15} /><span>{user.email_confirmed_at ? 'Deine E-Mail-Adresse wurde bestätigt.' : 'Bestätige deine E-Mail-Adresse für mehr Kontosicherheit.'} Die Anmeldung wird von Supabase verwaltet.</span></div>
+            <button className="logout-button" onClick={signOutAccount}><LogOut size={15} /> Abmelden</button>
           </>}
         </section>
       </div>}
