@@ -106,6 +106,7 @@ function AuthenticatedApp({ client, siteSettings, settingsError, onSiteSettingsC
     siteSettings={siteSettings}
     isAdmin={isAdmin === true}
     onOpenAdmin={() => { window.location.hash = '/admin' }}
+    onOpenLocalPreview={() => { window.location.hash = '/preview' }}
   />
 }
 

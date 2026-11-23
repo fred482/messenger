@@ -13,6 +13,7 @@ import {
   MessageCircle,
   MoreHorizontal,
   Paperclip,
+  Palette,
   Plus,
   Search,
   Send,
@@ -115,7 +116,7 @@ function contactToChat(profile) {
   }
 }
 
-function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin }) {
+function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPreview }) {
   const [chats, setChats] = useState(initialChats)
   const [activeId, setActiveId] = useState('lena')
   const [search, setSearch] = useState('')
@@ -302,6 +303,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin }) {
           <div className="privacy-mini"><ShieldCheck size={17} /><span><strong>Privatsphäre zuerst</strong><small>Dein Konto ohne Telefonnummer</small></span><Check size={15} /></div>
           <button className="sidebar-action" onClick={() => setDialog('settings')}><Settings2 size={17} /> Einstellungen <span>⌘ ,</span></button>
           {isAdmin && <button className="sidebar-action" onClick={onOpenAdmin}><Settings2 size={17} /> Website bearbeiten</button>}
+          <button className="sidebar-action" title="Änderungen bleiben nur in diesem Browser" onClick={onOpenLocalPreview}><Palette size={17} /> Vorschau bearbeiten</button>
           <button className="sidebar-action" onClick={() => showNotice('Hilfe ist in diesem Prototyp noch nicht verfügbar.')}><CircleHelp size={17} /> Hilfe & Feedback</button>
         </div>
       </aside>
@@ -379,6 +381,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin }) {
             <p className="modal-description">Dein Konto nutzt E-Mail und Passwort. Für die Anmeldung ist keine 2FA erforderlich.</p>
             <div className="signed-in-email"><span>E-Mail-Adresse</span><strong>{accountEmail}</strong></div>
             <div className="modal-note"><ShieldCheck size={15} /><span>{user.email_confirmed_at ? 'Deine E-Mail-Adresse wurde bestätigt.' : 'Bestätige deine E-Mail-Adresse für mehr Kontosicherheit.'} Die Anmeldung wird von Supabase verwaltet.</span></div>
+            <button className="primary-button account-security-button" onClick={onOpenLocalPreview}><Palette size={16} /> Lokale Vorschau bearbeiten</button>
             {isAdmin && <button className="primary-button account-security-button" onClick={onOpenAdmin}><Settings2 size={16} /> Website bearbeiten</button>}
             <button className="logout-button" onClick={signOutAccount}><LogOut size={15} /> Abmelden</button>
           </>}
