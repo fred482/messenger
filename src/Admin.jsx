@@ -7,7 +7,7 @@ const sections = [
   { id: 'contacts', label: 'Kontakte', icon: ContactRound },
 ]
 
-export default function AdminPanel({ supabase, user, siteSettings, settingsError, onSettingsChange, onBack }) {
+export default function AdminPanel({ supabase, user, siteSettings, settingsError, onSettingsChange, onBack, localOnly = false }) {
   const [section, setSection] = useState('design')
   const [draft, setDraft] = useState(siteSettings)
   const [users, setUsers] = useState([])
@@ -23,6 +23,11 @@ export default function AdminPanel({ supabase, user, siteSettings, settingsError
   }, [siteSettings])
 
   useEffect(() => {
+    if (localOnly) {
+      setLoadingData(false)
+      return undefined
+    }
+
     let active = true
 
     async function loadAdminData() {
@@ -51,7 +56,7 @@ export default function AdminPanel({ supabase, user, siteSettings, settingsError
 
     loadAdminData()
     return () => { active = false }
-  }, [supabase])
+  }, [localOnly, supabase])
 
   function updateDraft(key, value) {
     setDraft((current) => ({ ...current, [key]: value }))
@@ -64,6 +69,20 @@ export default function AdminPanel({ supabase, user, siteSettings, settingsError
     setSaving(true)
     setSaveError('')
     setSaved(false)
+
+    if (localOnly) {
+      try {
+        const previewSettings = { ...draft }
+        localStorage.setItem('klartext-local-preview-settings', JSON.stringify(previewSettings))
+        onSettingsChange(previewSettings)
+        setSaved(true)
+      } catch (saveError) {
+        setSaveError(saveError instanceof Error ? saveError.message : 'Lokale Vorschau konnte nicht gespeichert werden.')
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
 
     try {
       const { data, error } = await supabase
@@ -96,21 +115,24 @@ export default function AdminPanel({ supabase, user, siteSettings, settingsError
   }
 
   const profileById = new Map(users.map((profile) => [profile.id, profile]))
+  const visibleSections = localOnly ? sections.filter(({ id }) => id === 'design') : sections
 
   return (
     <main className="admin-page" style={{ '--green': draft.accent_color }}>
       <header className="admin-header">
         <button className="admin-back" onClick={onBack}><ArrowLeft size={17} /> Zurück zum Messenger</button>
         <div>
-          <span className="admin-eyebrow">ADMIN-BEREICH</span>
+          <span className="admin-eyebrow">{localOnly ? 'LOKALE VORSCHAU' : 'ADMIN-BEREICH'}</span>
           <h1>Website bearbeiten</h1>
-          <p>Angemeldet als {user.email}. Nur dein Admin-Konto kann Änderungen speichern.</p>
+          <p>{localOnly
+            ? 'Ohne Anmeldung. Änderungen werden nur in diesem Browser gespeichert und nicht veröffentlicht.'
+            : `Angemeldet als ${user.email}. Nur dein Admin-Konto kann Änderungen speichern.`}</p>
         </div>
       </header>
 
       <div className="admin-layout">
         <nav className="admin-nav" aria-label="Admin-Bereiche">
-          {sections.map(({ id, label, icon: Icon }) => (
+          {visibleSections.map(({ id, label, icon: Icon }) => (
             <button key={id} className={section === id ? 'active' : ''} onClick={() => setSection(id)}>
               <Icon size={17} /> {label}
               {id === 'users' && <span>{users.length}</span>}

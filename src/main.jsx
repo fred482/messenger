@@ -112,6 +112,40 @@ function AuthenticatedApp({ client, siteSettings, settingsError, onSiteSettingsC
 function Root() {
   const [siteSettings, setSiteSettings] = useState(defaultSiteSettings)
   const [settingsError, setSettingsError] = useState('')
+  const [localPreview, setLocalPreview] = useState(() => window.location.hash === '#/preview')
+  const [previewSettings, setPreviewSettings] = useState(defaultSiteSettings)
+  const [previewError, setPreviewError] = useState('')
+  const [previewLoaded, setPreviewLoaded] = useState(false)
+
+  useEffect(() => {
+    const updateRoute = () => setLocalPreview(window.location.hash === '#/preview')
+    window.addEventListener('hashchange', updateRoute)
+    return () => window.removeEventListener('hashchange', updateRoute)
+  }, [])
+
+  useEffect(() => {
+    if (!localPreview) return undefined
+
+    setPreviewLoaded(false)
+    try {
+      const saved = window.localStorage.getItem('klartext-local-preview-settings')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          throw new Error('Gespeicherte Vorschau-Einstellungen sind ungültig.')
+        }
+        setPreviewSettings({ ...defaultSiteSettings, ...parsed })
+      } else {
+        setPreviewSettings(defaultSiteSettings)
+      }
+      setPreviewError('')
+    } catch (loadError) {
+      setPreviewError(loadError instanceof Error ? loadError.message : 'Lokale Vorschau konnte nicht geladen werden.')
+    } finally {
+      setPreviewLoaded(true)
+    }
+    return undefined
+  }, [localPreview])
 
   useEffect(() => {
     if (!supabase) return undefined
@@ -135,6 +169,19 @@ function Root() {
   useEffect(() => {
     document.title = `${siteSettings.brand_name} · Messenger`
   }, [siteSettings.brand_name])
+
+  if (localPreview) {
+    if (!previewLoaded) return <div className="auth-loading">Lokale Vorschau wird geladen …</div>
+    return <AdminPanel
+      supabase={null}
+      user={null}
+      siteSettings={previewSettings}
+      settingsError={previewError}
+      onSettingsChange={setPreviewSettings}
+      onBack={() => { window.location.hash = '' }}
+      localOnly
+    />
+  }
 
   return supabase
     ? <AuthenticatedApp client={supabase} siteSettings={siteSettings} settingsError={settingsError} onSiteSettingsChange={setSiteSettings} />

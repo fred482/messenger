@@ -132,7 +132,7 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
             <p className="auth-form-footnote"><ShieldCheck size={13} /> Die Anmeldung wird sicher von Supabase verwaltet.</p>
           </div>
         </div>
-        <footer className="auth-footer"><span>KLARTEXT MESSENGER</span><span>Ohne Telefonnummer und 2FA</span></footer>
+        <footer className="auth-footer"><span>KLARTEXT MESSENGER</span><a href="#/preview">Vorschau bearbeiten (nur auf diesem Gerät)</a></footer>
       </section>
     </main>
   )

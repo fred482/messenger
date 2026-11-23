@@ -194,6 +194,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .auth-mode-switch button.active { color: #334139; background: white; box-shadow: 0 1px 3px #1c332314; font-weight: 700; }
 .auth-form-footnote { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 14px 0 0; color: #86918a; font-size: 9px; text-align: center; }
 .auth-footer { display: flex; justify-content: space-between; padding: 17px 4vw 0; color: #98a19b; border-top: 1px solid #e5ebe5; font-size: 9px; letter-spacing: .7px; }
+.auth-footer a { color: #77877e; font-size: 9px; letter-spacing: 0; text-decoration: none; }
+.auth-footer a:hover { color: var(--green); text-decoration: underline; }
 .auth-loading { display: grid; place-items: center; min-height: 100dvh; color: #637068; background: #f8faf7; font-size: 13px; }
 .admin-page { min-height: 100dvh; padding: 32px; color: var(--ink); background: #f6f8f5; }
 .admin-header, .admin-layout { width: min(1240px, 100%); margin: 0 auto; }

@@ -18,6 +18,8 @@
 
    The visual editor is at `https://fred482.github.io/messenger/#/admin`. Only the admin account can save site settings. The users and contacts tabs are read-only.
 
+For an unauthenticated, local-only preview, open `https://fred482.github.io/messenger/#/preview` or use the preview link on the sign-in page. Its settings are saved only in the current browser and never change the public site.
+
 Users choose a unique username of 3–24 letters, numbers, or underscores during sign-up. Usernames are normalized to lowercase and enforced as unique in the database. After sign-up, Supabase sends the email confirmation link automatically. Opening it confirms the address and redirects back to the app, where the user is signed in. They can then search for other registered users by username; only confirmed accounts are discoverable. The registration stores the name and username on the Supabase user profile.
 
 ## Send from your Gmail address
