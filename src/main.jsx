@@ -13,8 +13,20 @@ const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim()
 const supabase = supabaseUrl && publishableKey
   ? createClient(supabaseUrl, publishableKey)
   : null
+const localSettingsKey = 'klartext-local-preview-settings'
 
-function AuthenticatedApp({ client, siteSettings, settingsError, onSiteSettingsChange }) {
+function readLocalSettings() {
+  const saved = window.localStorage.getItem(localSettingsKey)
+  if (!saved) return null
+
+  const parsed = JSON.parse(saved)
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Gespeicherte lokale Einstellungen sind ungültig.')
+  }
+  return { ...defaultSiteSettings, ...parsed }
+}
+
+function AuthenticatedApp({ client, siteSettings, settingsError, onSiteSettingsChange, onOpenLocalPreview }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -106,7 +118,7 @@ function AuthenticatedApp({ client, siteSettings, settingsError, onSiteSettingsC
     siteSettings={siteSettings}
     isAdmin={isAdmin === true}
     onOpenAdmin={() => { window.location.hash = '/admin' }}
-    onOpenLocalPreview={() => { window.location.hash = '/preview' }}
+    onOpenLocalPreview={onOpenLocalPreview}
   />
 }
 
@@ -114,12 +126,17 @@ function Root() {
   const [siteSettings, setSiteSettings] = useState(defaultSiteSettings)
   const [settingsError, setSettingsError] = useState('')
   const [localPreview, setLocalPreview] = useState(() => window.location.hash === '#/preview')
+  const [localDemo, setLocalDemo] = useState(() => window.location.hash === '#/demo')
   const [previewSettings, setPreviewSettings] = useState(defaultSiteSettings)
   const [previewError, setPreviewError] = useState('')
   const [previewLoaded, setPreviewLoaded] = useState(false)
+  const [previewReturn, setPreviewReturn] = useState(null)
 
   useEffect(() => {
-    const updateRoute = () => setLocalPreview(window.location.hash === '#/preview')
+    const updateRoute = () => {
+      setLocalPreview(window.location.hash === '#/preview')
+      setLocalDemo(window.location.hash === '#/demo')
+    }
     window.addEventListener('hashchange', updateRoute)
     return () => window.removeEventListener('hashchange', updateRoute)
   }, [])
@@ -129,16 +146,7 @@ function Root() {
 
     setPreviewLoaded(false)
     try {
-      const saved = window.localStorage.getItem('klartext-local-preview-settings')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-          throw new Error('Gespeicherte Vorschau-Einstellungen sind ungültig.')
-        }
-        setPreviewSettings({ ...defaultSiteSettings, ...parsed })
-      } else {
-        setPreviewSettings(defaultSiteSettings)
-      }
+      setPreviewSettings(readLocalSettings() ?? siteSettings)
       setPreviewError('')
     } catch (loadError) {
       setPreviewError(loadError instanceof Error ? loadError.message : 'Lokale Vorschau konnte nicht geladen werden.')
@@ -149,23 +157,35 @@ function Root() {
   }, [localPreview])
 
   useEffect(() => {
-    if (!supabase) return undefined
-
     let active = true
+    let localSettings = null
+    try {
+      localSettings = readLocalSettings()
+    } catch (loadError) {
+      setSettingsError(loadError instanceof Error ? loadError.message : 'Lokale Einstellungen konnten nicht geladen werden.')
+    }
+
+    if (!supabase || localPreview || localDemo) {
+      if (localSettings) setSiteSettings(localSettings)
+      return () => { active = false }
+    }
+
     supabase.from('site_settings').select('*').eq('id', 1).maybeSingle().then(({ data, error }) => {
       if (!active) return
       if (error) {
         setSettingsError(error.message)
+        if (localSettings) setSiteSettings(localSettings)
         return
       }
-      if (data) setSiteSettings({ ...defaultSiteSettings, ...data })
+      setSiteSettings({ ...defaultSiteSettings, ...data, ...localSettings })
     }).catch((loadError) => {
       if (!active) return
       setSettingsError(loadError instanceof Error ? loadError.message : 'Unbekannter Fehler beim Laden der Website-Einstellungen.')
+      if (localSettings) setSiteSettings(localSettings)
     })
 
     return () => { active = false }
-  }, [])
+  }, [localPreview, localDemo])
 
   useEffect(() => {
     document.title = `${siteSettings.brand_name} · Messenger`
@@ -178,14 +198,43 @@ function Root() {
       user={null}
       siteSettings={previewSettings}
       settingsError={previewError}
-      onSettingsChange={setPreviewSettings}
-      onBack={() => { window.location.hash = '' }}
+      onSettingsChange={(settings) => {
+        setPreviewSettings(settings)
+        setSiteSettings(settings)
+      }}
+      onBack={() => {
+        window.location.hash = previewReturn ?? '/demo'
+        setPreviewReturn(null)
+      }}
       localOnly
     />
   }
 
+  if (localDemo) {
+    return <App
+      user={{ id: 'local-preview', email: 'Lokale Vorschau', user_metadata: { full_name: 'Deine Vorschau' } }}
+      supabase={null}
+      siteSettings={siteSettings}
+      isAdmin={false}
+      onOpenLocalPreview={() => {
+        setPreviewReturn('/demo')
+        window.location.hash = '/preview'
+      }}
+      demoMode
+    />
+  }
+
   return supabase
-    ? <AuthenticatedApp client={supabase} siteSettings={siteSettings} settingsError={settingsError} onSiteSettingsChange={setSiteSettings} />
+    ? <AuthenticatedApp
+      client={supabase}
+      siteSettings={siteSettings}
+      settingsError={settingsError}
+      onSiteSettingsChange={setSiteSettings}
+      onOpenLocalPreview={() => {
+        setPreviewReturn('')
+        window.location.hash = '/preview'
+      }}
+    />
     : <AuthScreen supabase={null} siteSettings={siteSettings} />
 }
 

@@ -3,10 +3,13 @@ import {
   ArrowDownLeft,
   ArrowLeft,
   Bell,
+  Camera,
   Check,
   CheckCheck,
   ChevronDown,
   CircleHelp,
+  Heart,
+  ImagePlus,
   LockKeyhole,
   LogOut,
   Mail,
@@ -14,9 +17,12 @@ import {
   MoreHorizontal,
   Paperclip,
   Palette,
+  Phone,
+  PhoneCall,
   Plus,
   Search,
   Send,
+  Settings,
   Settings2,
   ShieldCheck,
   SlidersHorizontal,
@@ -24,6 +30,14 @@ import {
   UserRound,
   X,
 } from 'lucide-react'
+
+const appSections = [
+  { id: 'messages', label: 'Nachrichten', icon: MessageCircle },
+  { id: 'calls', label: 'Anrufe', icon: Phone },
+  { id: 'status', label: 'Status', icon: Camera },
+  { id: 'momento', label: 'Momento', icon: ImagePlus },
+  { id: 'settings', label: 'Einstellungen', icon: Settings },
+]
 
 const initialChats = [
   {
@@ -116,9 +130,22 @@ function contactToChat(profile) {
   }
 }
 
-function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPreview }) {
+function readImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') resolve(reader.result)
+      else reject(new Error('Das Bild konnte nicht gelesen werden.'))
+    }
+    reader.onerror = () => reject(reader.error || new Error('Das Bild konnte nicht gelesen werden.'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPreview, demoMode = false }) {
   const [chats, setChats] = useState(initialChats)
   const [activeId, setActiveId] = useState('lena')
+  const [activeSection, setActiveSection] = useState('messages')
   const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
   const [detailsOpen, setDetailsOpen] = useState(() => window.matchMedia('(min-width: 1081px)').matches)
@@ -128,6 +155,10 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
   const [contactResult, setContactResult] = useState(null)
   const [contactError, setContactError] = useState('')
   const [contactBusy, setContactBusy] = useState(false)
+  const [statusImages, setStatusImages] = useState([])
+  const [momentoPosts, setMomentoPosts] = useState([])
+  const [momentImage, setMomentImage] = useState('')
+  const [momentCaption, setMomentCaption] = useState('')
   const messageEnd = useRef(null)
 
   const accountEmail = user?.email ?? ''
@@ -147,6 +178,8 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
   }
 
   useEffect(() => {
+    if (demoMode || !supabase) return undefined
+
     let active = true
 
     async function loadContacts() {
@@ -167,9 +200,14 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
 
     loadContacts()
     return () => { active = false }
-  }, [supabase, user.id])
+  }, [demoMode, supabase, user.id])
 
   async function signOutAccount() {
+    if (demoMode) {
+      showNotice('In der lokalen Vorschau gibt es kein angemeldetes Konto.')
+      return
+    }
+
     try {
       const { error } = await supabase.auth.signOut()
       if (error) showNotice(`Abmelden nicht möglich: ${error.message}`)
@@ -188,6 +226,60 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
       : chat))
     setMessage('')
     window.setTimeout(() => messageEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 40)
+  }
+
+  async function getLocalImage(file) {
+    if (!file.type.startsWith('image/')) throw new Error('Bitte wähle eine Bilddatei aus.')
+    if (file.size > 4 * 1024 * 1024) throw new Error('Das Bild darf höchstens 4 MB groß sein.')
+    return readImageFile(file)
+  }
+
+  async function addStatusImage(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    try {
+      const image = await getLocalImage(file)
+      setStatusImages((current) => [{ id: Date.now(), image }, ...current])
+    } catch (uploadError) {
+      showNotice(`Bild konnte nicht hinzugefügt werden: ${uploadError instanceof Error ? uploadError.message : 'Unbekannter Fehler.'}`)
+    }
+  }
+
+  async function selectMomentImage(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    try {
+      setMomentImage(await getLocalImage(file))
+    } catch (uploadError) {
+      showNotice(`Bild konnte nicht geladen werden: ${uploadError instanceof Error ? uploadError.message : 'Unbekannter Fehler.'}`)
+    }
+  }
+
+  function publishMoment(event) {
+    event.preventDefault()
+    if (!momentImage) {
+      showNotice('Wähle zuerst ein Bild für deinen Momento-Beitrag aus.')
+      return
+    }
+    setMomentoPosts((current) => [{
+      id: Date.now(),
+      image: momentImage,
+      caption: momentCaption.trim(),
+      likes: 0,
+      liked: false,
+    }, ...current])
+    setMomentImage('')
+    setMomentCaption('')
+  }
+
+  function toggleMomentLike(postId) {
+    setMomentoPosts((current) => current.map((post) => post.id === postId
+      ? { ...post, liked: !post.liked, likes: post.likes + (post.liked ? -1 : 1) }
+      : post))
   }
 
   function openContactDialog() {
@@ -265,7 +357,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
         <div className="brand-row">
           <div className="brand-mark">{siteSettings.logo_text || <MessageCircle size={19} strokeWidth={2.5} />}</div>
           <span className="brand-name">{siteSettings.brand_name}<span>.</span></span>
-          <button className="icon-button sidebar-more" aria-label="Menü öffnen" onClick={() => setDialog('settings')}><MoreHorizontal size={20} /></button>
+          <button className="icon-button sidebar-more" aria-label="Menü öffnen" onClick={() => demoMode ? setActiveSection('settings') : setDialog('settings')}><MoreHorizontal size={20} /></button>
         </div>
 
         <div className="account-chip">
@@ -276,7 +368,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
 
         <div className="section-label-row">
           <span className="section-label">NACHRICHTEN</span>
-          <button className="icon-button new-chat" aria-label="Neuen Chat starten" title="Neuen Chat starten" onClick={openContactDialog}><Plus size={18} /></button>
+          <button className="icon-button new-chat" aria-label="Neuen Chat starten" title={demoMode ? 'Nur mit Anmeldung verfügbar' : 'Neuen Chat starten'} onClick={openContactDialog} disabled={demoMode}><Plus size={18} /></button>
         </div>
 
         <label className="search-box">
@@ -301,14 +393,14 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
 
         <div className="sidebar-bottom">
           <div className="privacy-mini"><ShieldCheck size={17} /><span><strong>Privatsphäre zuerst</strong><small>Dein Konto ohne Telefonnummer</small></span><Check size={15} /></div>
-          <button className="sidebar-action" onClick={() => setDialog('settings')}><Settings2 size={17} /> Einstellungen <span>⌘ ,</span></button>
-          {isAdmin && <button className="sidebar-action" onClick={onOpenAdmin}><Settings2 size={17} /> Website bearbeiten</button>}
-          <button className="sidebar-action" title="Änderungen bleiben nur in diesem Browser" onClick={onOpenLocalPreview}><Palette size={17} /> Vorschau bearbeiten</button>
+          <button className="sidebar-action" onClick={() => setActiveSection('settings')}><Settings2 size={17} /> Einstellungen <span>⌘ ,</span></button>
+          {isAdmin && <button className="sidebar-action" onClick={onOpenAdmin}><Settings2 size={17} /> Chat-Oberfläche bearbeiten</button>}
+          <button className="sidebar-action" title="Änderungen bleiben nur in diesem Browser" onClick={onOpenLocalPreview}><Palette size={17} /> Chat bearbeiten</button>
           <button className="sidebar-action" onClick={() => showNotice('Hilfe ist in diesem Prototyp noch nicht verfügbar.')}><CircleHelp size={17} /> Hilfe & Feedback</button>
         </div>
       </aside>
 
-      <section className="conversation" aria-label={`Chat mit ${activeChat?.name}`}>
+      {activeSection === 'messages' ? <section className="conversation" aria-label={`Chat mit ${activeChat?.name}`}>
         <header className="conversation-header">
           <button className="icon-button back-button" aria-label="Zurück zu Chats" onClick={() => setDetailsOpen(false)}><ArrowLeft size={19} /></button>
           {activeChat && <Avatar chat={activeChat} size="small" />}
@@ -320,7 +412,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
           </div>
         </header>
 
-        <div className="demo-banner"><LockKeyhole size={15} /><span><strong>Lokaler Prototyp.</strong> Nachrichten werden nicht zugestellt und sind noch nicht Ende-zu-Ende-verschlüsselt.</span><button aria-label="Hinweis schließen" onClick={(event) => event.currentTarget.parentElement.remove()}><X size={15} /></button></div>
+        <div className="demo-banner"><LockKeyhole size={15} /><span><strong>Lokaler Prototyp.</strong> {siteSettings.chat_banner}</span><button aria-label="Hinweis schließen" onClick={(event) => event.currentTarget.parentElement.remove()}><X size={15} /></button></div>
 
         <div className="message-scroll">
           <div className="day-divider"><span>HEUTE</span></div>
@@ -342,10 +434,66 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
           <button type="button" className="icon-button composer-tool emoji-button" title="Emoji (Demo)" aria-label="Emoji auswählen" onClick={() => setMessage((current) => `${current} ☀️`)}><Smile size={19} /></button>
           <button type="submit" className="send-button" aria-label="Nachricht senden" disabled={!message.trim()}><Send size={17} /></button>
         </form>
-        <div className="composer-footnote"><LockKeyhole size={11} /> Lokal in dieser Vorschau</div>
-      </section>
+        <div className="composer-footnote"><LockKeyhole size={11} /> {demoMode ? 'Nur lokale Vorschau' : 'Lokaler Prototyp'}</div>
+      </section> : <section className="activity-page">
+        {activeSection === 'calls' && <>
+          <header className="activity-heading"><div><span className="activity-eyebrow">VERBUNDEN BLEIBEN</span><h1>Anrufe</h1><p>Anrufliste als Vorschau. Echte Anrufe sind noch nicht verfügbar.</p></div></header>
+          <div className="call-list">
+            {chats.slice(0, 3).map((chat, index) => (
+              <article className="call-row" key={chat.id}>
+                <Avatar chat={chat} />
+                <div className="call-copy"><strong>{chat.name}</strong><span>{index === 0 ? 'Eingehender Audioanruf · Heute, 10:42' : index === 1 ? 'Videoanruf · Gestern' : 'Ausgehender Anruf · Montag'}</span></div>
+                <button className="icon-button call-action" aria-label={`Anruf bei ${chat.name}`} onClick={() => showNotice('Anrufe sind in diesem lokalen Prototyp noch nicht echt.')}><PhoneCall size={18} /></button>
+              </article>
+            ))}
+          </div>
+        </>}
 
-      {detailsOpen && <aside className="details-panel">
+        {activeSection === 'status' && <>
+          <header className="activity-heading"><div><span className="activity-eyebrow">LOKALER STATUS</span><h1>Status</h1><p>Teile ein Bild als lokalen Status. Es wird nicht hochgeladen oder mit anderen geteilt.</p></div></header>
+          <label className="status-upload-card">
+            <span className="status-upload-icon"><ImagePlus size={23} /></span>
+            <strong>Bild zum Status hinzufügen</strong>
+            <small>JPG, PNG oder ein anderes Bild · maximal 4 MB</small>
+            <input type="file" accept="image/*" onChange={addStatusImage} />
+          </label>
+          {statusImages.length > 0 ? <div className="status-grid">
+            {statusImages.map((status) => <article className="status-card" key={status.id}><img src={status.image} alt="Dein lokaler Status" /><span>Dein Status · gerade eben</span></article>)}
+          </div> : <div className="activity-empty"><Camera size={27} /><strong>Noch kein Status</strong><span>Wähle ein Bild aus, um es hier lokal anzusehen.</span></div>}
+        </>}
+
+        {activeSection === 'momento' && <>
+          <header className="activity-heading momento-heading"><div><span className="activity-eyebrow">DEINE BILDER. DEINE MOMENTE.</span><h1>Momento</h1><p>Ein lokaler Foto-Feed — Beiträge sind nur in dieser Sitzung sichtbar.</p></div></header>
+          <form className="momento-composer" onSubmit={publishMoment}>
+            <label className="momento-image-picker">
+              {momentImage ? <img src={momentImage} alt="Ausgewählter Momento-Beitrag" /> : <><ImagePlus size={25} /><span>Bild auswählen</span></>}
+              <input type="file" accept="image/*" onChange={selectMomentImage} />
+            </label>
+            <div className="momento-compose-fields"><textarea value={momentCaption} onChange={(event) => setMomentCaption(event.target.value)} maxLength={240} placeholder="Was möchtest du teilen?" aria-label="Bildbeschreibung" /><button className="primary-button" type="submit" disabled={!momentImage}>In Momento teilen <Send size={15} /></button></div>
+          </form>
+          {momentoPosts.length > 0 ? <div className="momento-feed">
+            {momentoPosts.map((post) => <article className="momento-post" key={post.id}>
+              <header><div className="account-avatar">{accountInitial}</div><strong>{accountName}</strong><span>gerade eben</span></header>
+              <img src={post.image} alt={post.caption || 'Lokaler Momento-Beitrag'} />
+              <div className="momento-post-actions"><button className={post.liked ? 'liked' : ''} onClick={() => toggleMomentLike(post.id)} aria-label={post.liked ? 'Gefällt mir entfernen' : 'Gefällt mir'}><Heart size={18} fill={post.liked ? 'currentColor' : 'none'} /></button><span>{post.likes} gefällt das</span></div>
+              {post.caption && <p><strong>{accountName}</strong> {post.caption}</p>}
+            </article>)}
+          </div> : <div className="activity-empty"><ImagePlus size={27} /><strong>Dein Momento-Feed</strong><span>Wähle oben ein Bild aus und teile deinen ersten Moment.</span></div>}
+        </>}
+
+        {activeSection === 'settings' && <>
+          <header className="activity-heading"><div><span className="activity-eyebrow">DEIN KONTO</span><h1>Einstellungen</h1><p>Verwalte dein Konto und die lokale Vorschau.</p></div></header>
+          <section className="settings-card">
+            <div className="settings-profile"><div className="account-avatar">{accountInitial}</div><div><strong>{accountName}</strong><span>{accountUsername ? `@${accountUsername}` : accountEmail}</span></div></div>
+            <div className="local-prototype-note"><LockKeyhole size={16} /><span>Status- und Momento-Bilder sind nur in dieser Sitzung sichtbar und werden weder gespeichert noch geteilt. Nachrichten und Anrufe sind Demo-Funktionen.</span></div>
+            <button className="primary-button" onClick={onOpenLocalPreview}><Palette size={16} /> Chat-Oberfläche bearbeiten</button>
+            {isAdmin && <button className="secondary-button" onClick={onOpenAdmin}><Settings2 size={16} /> Chat bearbeiten (Admin)</button>}
+            {!demoMode && <button className="logout-button" onClick={signOutAccount}><LogOut size={15} /> Abmelden</button>}
+          </section>
+        </>}
+      </section>}
+
+      {activeSection === 'messages' && detailsOpen && <aside className="details-panel">
         <div className="details-top"><span>CHAT-DETAILS</span><button className="icon-button" aria-label="Details schließen" onClick={() => setDetailsOpen(false)}><X size={17} /></button></div>
         {activeChat && <>
           <div className="contact-profile"><Avatar chat={activeChat} size="large" /><h2>{activeChat.name}</h2><p>{activeChat.username ? `@${activeChat.username}` : activeChat.email}</p><span className={`contact-presence ${activeChat.online ? 'is-online' : ''}`}><i />{activeChat.online ? 'Online' : 'Zuletzt gesehen: gestern'}</span></div>
@@ -359,6 +507,14 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
           <div className="detail-footnote"><LockKeyhole size={14} /><p>Kein Telefonbuch-Upload.<br />Kontakte per Benutzername finden.</p></div>
         </>}
       </aside>}
+
+      <nav className="app-bottom-nav" aria-label="Hauptnavigation">
+        {appSections.map(({ id, label, icon: Icon }) => (
+          <button key={id} className={activeSection === id ? 'active' : ''} aria-current={activeSection === id ? 'page' : undefined} onClick={() => setActiveSection(id)}>
+            <Icon size={19} /><span>{label}</span>
+          </button>
+        ))}
+      </nav>
 
       {notice && <div className="toast" role="status">{notice}</div>}
 

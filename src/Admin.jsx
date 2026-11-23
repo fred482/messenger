@@ -90,8 +90,7 @@ export default function AdminPanel({ supabase, user, siteSettings, settingsError
         .update({
           brand_name: draft.brand_name.trim(),
           logo_text: draft.logo_text.trim(),
-          auth_heading: draft.auth_heading.trim(),
-          auth_description: draft.auth_description.trim(),
+          chat_banner: draft.chat_banner.trim(),
           accent_color: draft.accent_color,
           updated_at: new Date().toISOString(),
         })
@@ -123,7 +122,7 @@ export default function AdminPanel({ supabase, user, siteSettings, settingsError
         <button className="admin-back" onClick={onBack}><ArrowLeft size={17} /> Zurück zum Messenger</button>
         <div>
           <span className="admin-eyebrow">{localOnly ? 'LOKALE VORSCHAU' : 'ADMIN-BEREICH'}</span>
-          <h1>Website bearbeiten</h1>
+          <h1>Chat-Oberfläche bearbeiten</h1>
           <p>{localOnly
             ? 'Ohne Anmeldung. Änderungen werden nur in diesem Browser gespeichert und nicht veröffentlicht.'
             : `Angemeldet als ${user.email}. Nur dein Admin-Konto kann Änderungen speichern.`}</p>
@@ -144,12 +143,11 @@ export default function AdminPanel({ supabase, user, siteSettings, settingsError
         <section className="admin-content">
           {section === 'design' && <div className="admin-design-grid">
             <form className="admin-editor" onSubmit={saveSettings}>
-              <div className="admin-section-heading"><h2>Darstellung</h2><p>Die Vorschau aktualisiert sich beim Bearbeiten.</p></div>
+              <div className="admin-section-heading"><h2>Chat-Oberfläche</h2><p>Die Vorschau zeigt den Chat und aktualisiert sich beim Bearbeiten.</p></div>
               {settingsError && <p className="auth-feedback auth-error" role="alert">Einstellungen konnten nicht geladen werden: {settingsError}</p>}
-              <label>Seitenname<input value={draft.brand_name} maxLength={32} onChange={(event) => updateDraft('brand_name', event.target.value)} required /></label>
+              <label>Chat-Seitenname<input value={draft.brand_name} maxLength={32} onChange={(event) => updateDraft('brand_name', event.target.value)} required /></label>
               <label>Logo-Zeichen<input value={draft.logo_text} maxLength={4} onChange={(event) => updateDraft('logo_text', event.target.value)} required /></label>
-              <label>Überschrift<input value={draft.auth_heading} maxLength={80} onChange={(event) => updateDraft('auth_heading', event.target.value)} required /></label>
-              <label>Beschreibung<textarea value={draft.auth_description} maxLength={240} rows={3} onChange={(event) => updateDraft('auth_description', event.target.value)} required /></label>
+              <label>Chat-Hinweis<textarea value={draft.chat_banner} maxLength={240} rows={3} onChange={(event) => updateDraft('chat_banner', event.target.value)} required /></label>
               <label className="admin-color-field">Akzentfarbe<input type="color" value={draft.accent_color} onChange={(event) => updateDraft('accent_color', event.target.value)} /></label>
               {saveError && <p className="auth-feedback auth-error" role="alert">Änderungen konnten nicht gespeichert werden: {saveError}</p>}
               {saved && <p className="auth-feedback auth-success" role="status">Änderungen gespeichert.</p>}
@@ -157,17 +155,22 @@ export default function AdminPanel({ supabase, user, siteSettings, settingsError
             </form>
 
             <div className="admin-preview-column">
-              <div className="admin-section-heading"><h2><Eye size={16} /> Live-Vorschau</h2><p>So sehen Besucher die Anmeldung.</p></div>
+              <div className="admin-section-heading"><h2><Eye size={16} /> Chat-Vorschau</h2><p>So sieht die angemeldete Chat-Seite aus.</p></div>
               <div className="admin-preview">
-                <header className="auth-brand">
-                  <span className="brand-mark">{draft.logo_text}</span>
-                  <span className="brand-name">{draft.brand_name}<span>.</span></span>
-                </header>
-                <div className="admin-preview-content">
-                  <h3>{draft.auth_heading}</h3>
-                  <p>{draft.auth_description}</p>
-                  <div className="admin-preview-input">E-Mail-Adresse</div>
-                  <button className="primary-button" disabled>Konto erstellen</button>
+                <div className="admin-chat-frame">
+                  <aside className="admin-chat-sidebar">
+                    <div className="admin-chat-brand"><span className="brand-mark">{draft.logo_text}</span><strong>{draft.brand_name}</strong></div>
+                    <span className="admin-chat-label">NACHRICHTEN</span>
+                    <div className="admin-chat-contact"><span>LH</span><div><strong>Lena Hoffmann</strong><small>Das klingt nach einem Plan …</small></div></div>
+                    <div className="admin-chat-contact"><span>JR</span><div><strong>Jonas Richter</strong><small>Die Fotos sind jetzt da.</small></div></div>
+                  </aside>
+                  <div className="admin-chat-screen">
+                    <header><span>LH</span><strong>Lena Hoffmann</strong></header>
+                    <div className="admin-chat-banner"><strong>Lokaler Prototyp.</strong> {draft.chat_banner}</div>
+                    <div className="admin-chat-messages"><span>Hey! Wie war dein Wochenende?</span><span>Richtig schön, danke! ☀️</span></div>
+                    <div className="admin-chat-composer">Nachricht schreiben …</div>
+                    <nav className="admin-chat-nav"><span>Nachrichten</span><span>Anrufe</span><span>Status</span><span>Momento</span><span>Einstellungen</span></nav>
+                  </div>
                 </div>
               </div>
             </div>
