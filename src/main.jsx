@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
 import App from './App.jsx'
-import { AuthScreen, AuthSetup } from './Auth.jsx'
+import { AuthScreen } from './Auth.jsx'
 import './styles.css'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
@@ -50,7 +50,7 @@ function AuthenticatedApp({ client }) {
 }
 
 function Root() {
-  return supabase ? <AuthenticatedApp client={supabase} /> : <AuthSetup />
+  return supabase ? <AuthenticatedApp client={supabase} /> : <AuthScreen supabase={null} />
 }
 
 createRoot(document.getElementById('root')).render(<React.StrictMode><Root /></React.StrictMode>)

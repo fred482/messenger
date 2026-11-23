@@ -1,29 +1,6 @@
 import { useState } from 'react'
 import { ArrowRight, LockKeyhole, Mail, MessageCircle, ShieldCheck } from 'lucide-react'
 
-export function AuthSetup() {
-  return (
-    <main className="auth-page">
-      <section className="auth-layout setup-layout">
-        <header className="auth-brand"><span className="brand-mark"><MessageCircle size={19} strokeWidth={2.5} /></span><span className="brand-name">klartext<span>.</span></span></header>
-        <div className="setup-content">
-          <div className="auth-eyebrow"><LockKeyhole size={14} /> SICHERE ANMELDUNG</div>
-          <h1>Supabase einrichten</h1>
-          <p>Erstelle ein Supabase-Projekt, aktiviere die E-Mail-Bestätigung und hinterlege die Projekt-URL sowie den öffentlichen Schlüssel.</p>
-          <ol className="setup-steps">
-            <li><span>1</span><div><strong>Supabase-Projekt erstellen</strong><small>Ein Projekt unter supabase.com/dashboard anlegen und E-Mail-Anmeldung aktivieren.</small></div></li>
-            <li><span>2</span><div><strong>Bestätigungslink konfigurieren</strong><small>Die Site URL und Redirect URL auf https://fred482.github.io/messenger/ setzen.</small></div></li>
-            <li><span>3</span><div><strong>GitHub Actions Variablen hinzufügen</strong><small><code>VITE_SUPABASE_URL</code> und <code>VITE_SUPABASE_PUBLISHABLE_KEY</code> unter Repository Settings → Secrets and variables → Actions → Variables eintragen.</small></div></li>
-          </ol>
-          <a className="primary-button setup-link" href="https://supabase.com/dashboard" target="_blank" rel="noreferrer">Supabase-Dashboard öffnen <ArrowRight size={16} /></a>
-          <div className="modal-note setup-note"><ShieldCheck size={15} /><span>Nur URL und Publishable Key gehören in die Web-App. Niemals den Secret- oder service_role-Schlüssel veröffentlichen.</span></div>
-        </div>
-        <div className="setup-footer"><Mail size={14} /> Anmeldung mit E-Mail und Passwort, ohne 2FA</div>
-      </section>
-    </main>
-  )
-}
-
 export function AuthScreen({ supabase }) {
   const [mode, setMode] = useState('sign-up')
   const [name, setName] = useState('')
@@ -47,6 +24,11 @@ export function AuthScreen({ supabase }) {
     event.preventDefault()
     setError('')
     setNotice('')
+
+    if (!supabase) {
+      setError('Die Anmeldung ist noch nicht eingerichtet.')
+      return
+    }
 
     if (isSignUp && password !== passwordConfirmation) {
       setError('Die Passwörter stimmen nicht überein.')
@@ -112,6 +94,7 @@ export function AuthScreen({ supabase }) {
               <button type="button" role="tab" aria-selected={!isSignUp} className={!isSignUp ? 'active' : ''} onClick={() => changeMode('sign-in')}>Anmelden</button>
               <button type="button" role="tab" aria-selected={isSignUp} className={isSignUp ? 'active' : ''} onClick={() => changeMode('sign-up')}>Konto erstellen</button>
             </div>
+            {!supabase && <p className="auth-feedback auth-info" role="status">Zum Aktivieren muss Supabase eingerichtet werden. <a href="https://github.com/fred482/messenger/blob/main/AUTH_SETUP.md" target="_blank" rel="noreferrer">Einrichtung öffnen</a>.</p>}
             <form className="modal-form auth-form" onSubmit={handleSubmit}>
               {isSignUp && <label>Name<input type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Dein Name" required /></label>}
               <label>E-Mail-Adresse<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@beispiel.de" required /></label>
@@ -119,7 +102,7 @@ export function AuthScreen({ supabase }) {
               {isSignUp && <label>Passwort bestätigen<input type="password" autoComplete="new-password" minLength={8} value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} placeholder="Passwort wiederholen" required /></label>}
               {error && <p className="auth-feedback auth-error" role="alert">{error}</p>}
               {notice && <p className="auth-feedback auth-success" role="status">{notice}</p>}
-              <button className="primary-button" type="submit" disabled={busy}>{busy ? 'Bitte warten …' : isSignUp ? 'Konto erstellen' : 'Anmelden'} <ArrowRight size={16} /></button>
+              <button className="primary-button" type="submit" disabled={busy || !supabase}>{busy ? 'Bitte warten …' : isSignUp ? 'Konto erstellen' : 'Anmelden'} <ArrowRight size={16} /></button>
             </form>
             <p className="auth-form-footnote"><ShieldCheck size={13} /> Die Anmeldung wird sicher von Supabase verwaltet.</p>
           </div>

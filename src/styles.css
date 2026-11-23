@@ -148,6 +148,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .auth-feedback { margin: 0; padding: 10px; border-radius: 5px; font-size: 11px; line-height: 1.5; }
 .auth-error { color: #9c4e49; background: #fbefed; }
 .auth-success { color: #356c55; background: #edf6ef; }
+.auth-info { color: #596c60; background: #edf3ee; }
+.auth-info a { color: #277e66; font-weight: 700; }
 .auth-form .primary-button:disabled { opacity: .7; cursor: wait; }
 .modal-form fieldset { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; border: 0; }
 .modal-form legend { margin-bottom: 8px; color: #59635e; font-size: 11px; font-weight: 600; }
@@ -176,8 +178,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .auth-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 420px); align-items: center; gap: clamp(35px, 8vw, 110px); flex: 1; padding: 40px 4vw 55px; }
 .auth-copy { max-width: 430px; }
 .auth-eyebrow { display: inline-flex; align-items: center; gap: 7px; color: #4a8069; font-size: 10px; font-weight: 700; letter-spacing: 1.1px; }
-.auth-copy h1, .setup-content h1 { margin: 20px 0 12px; font: 700 clamp(30px, 4vw, 44px)/1.15 'Manrope', sans-serif; letter-spacing: 0; }
-.auth-copy > p, .setup-content > p { max-width: 390px; margin: 0; color: #77827b; font-size: 14px; line-height: 1.7; }
+.auth-copy h1 { margin: 20px 0 12px; font: 700 clamp(30px, 4vw, 44px)/1.15 'Manrope', sans-serif; letter-spacing: 0; }
+.auth-copy > p { max-width: 390px; margin: 0; color: #77827b; font-size: 14px; line-height: 1.7; }
 .auth-promise { display: flex; align-items: center; gap: 12px; margin-top: 26px; }
 .auth-promise > span { display: grid; place-items: center; width: 38px; height: 38px; color: #40826a; background: #e8f1e9; border-radius: 8px; }
 .auth-promise div { display: flex; flex-direction: column; gap: 4px; }
@@ -189,18 +191,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .auth-mode-switch button.active { color: #334139; background: white; box-shadow: 0 1px 3px #1c332314; font-weight: 700; }
 .auth-form-footnote { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 14px 0 0; color: #86918a; font-size: 9px; text-align: center; }
 .auth-footer { display: flex; justify-content: space-between; padding: 17px 4vw 0; color: #98a19b; border-top: 1px solid #e5ebe5; font-size: 9px; letter-spacing: .7px; }
-.setup-layout { max-width: 800px; }
-.setup-content { width: min(550px, 100%); margin: auto; padding: 40px 0 55px; }
-.setup-steps { display: flex; flex-direction: column; gap: 17px; margin: 29px 0; padding: 0; list-style: none; }
-.setup-steps li { display: flex; align-items: flex-start; gap: 12px; }
-.setup-steps li > span { display: grid; place-items: center; flex: 0 0 auto; width: 25px; height: 25px; color: #3d8068; background: #e8f1e9; border-radius: 50%; font-size: 11px; font-weight: 700; }
-.setup-steps li div { display: flex; flex-direction: column; gap: 4px; padding-top: 2px; }
-.setup-steps strong { font-size: 12px; }
-.setup-steps small { color: #7f8983; font-size: 10px; line-height: 1.5; }
-.setup-steps code { padding: 1px 4px; background: #edf1ed; border-radius: 3px; font-size: 10px; }
-.setup-link { display: inline-flex; width: fit-content; min-width: 190px; padding: 0 15px; text-decoration: none; }
-.setup-note { margin-top: 17px; }
-.setup-footer { display: flex; align-items: center; gap: 7px; padding-top: 15px; color: #77877e; border-top: 1px solid #e5ebe5; font-size: 10px; }
 .auth-loading { display: grid; place-items: center; min-height: 100dvh; color: #637068; background: #f8faf7; font-size: 13px; }
 
 @media (max-width: 1080px) {
@@ -211,14 +201,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
   .auth-page { min-height: 100dvh; padding: 22px 16px; }
   .auth-layout { min-height: calc(100dvh - 44px); }
   .auth-grid { grid-template-columns: 1fr; gap: 23px; padding: 33px 0 28px; }
-  .auth-copy h1, .setup-content h1 { margin-top: 14px; font-size: 29px; }
-  .auth-copy > p, .setup-content > p { font-size: 12px; }
+  .auth-copy h1 { margin-top: 14px; font-size: 29px; }
+  .auth-copy > p { font-size: 12px; }
   .auth-promise { margin-top: 14px; }
   .auth-promise:nth-of-type(3) { display: none; }
   .auth-form-panel { padding: 15px; }
   .auth-footer { padding-right: 0; padding-left: 0; font-size: 8px; }
-  .setup-content { margin: auto 0; padding: 30px 0; }
-  .setup-link { width: 100%; }
   body { min-width: 320px; background: white; }
   .app-shell { position: fixed; inset: 0; grid-template-columns: 1fr; width: 100%; height: 100dvh; min-height: 0; margin: 0; border: 0; border-radius: 0; }
   .sidebar { display: none; }
