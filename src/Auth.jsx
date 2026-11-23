@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { ArrowRight, LockKeyhole, Mail, MessageCircle, ShieldCheck } from 'lucide-react'
+import { defaultSiteSettings } from './siteSettings.js'
 
-export function AuthScreen({ supabase }) {
+export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
   const [mode, setMode] = useState('sign-up')
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
@@ -102,14 +103,14 @@ export function AuthScreen({ supabase }) {
   }
 
   return (
-    <main className="auth-page">
+    <main className="auth-page" style={{ '--green': siteSettings.accent_color }}>
       <section className="auth-layout">
-        <header className="auth-brand"><span className="brand-mark"><MessageCircle size={19} strokeWidth={2.5} /></span><span className="brand-name">klartext<span>.</span></span></header>
+        <header className="auth-brand"><span className="brand-mark">{siteSettings.logo_text || <MessageCircle size={19} strokeWidth={2.5} />}</span><span className="brand-name">{siteSettings.brand_name}<span>.</span></span></header>
         <div className="auth-grid">
           <div className="auth-copy">
             <div className="auth-eyebrow"><LockKeyhole size={14} /> PRIVAT VERBUNDEN</div>
-            <h1>{isSignUp ? 'Dein Konto. Deine Privatsphäre.' : 'Schön, dass du da bist.'}</h1>
-            <p>Mit deiner E-Mail-Adresse und einem Passwort anmelden. Eine Telefonnummer oder 2FA brauchst du nicht.</p>
+            <h1>{isSignUp ? siteSettings.auth_heading : 'Schön, dass du da bist.'}</h1>
+            <p>{siteSettings.auth_description}</p>
             <div className="auth-promise"><span><Mail size={17} /></span><div><strong>E-Mail statt Handynummer</strong><small>Deine Adresse ist deine Anmeldung.</small></div></div>
             <div className="auth-promise"><span><ShieldCheck size={18} /></span><div><strong>Bestätigung per E-Mail</strong><small>Ein Link bestätigt dein Konto.</small></div></div>
           </div>

@@ -2,8 +2,10 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { createClient } from '@supabase/supabase-js'
 import { useEffect, useState } from 'react'
+import AdminPanel from './Admin.jsx'
 import App from './App.jsx'
 import { AuthScreen } from './Auth.jsx'
+import { defaultSiteSettings } from './siteSettings.js'
 import './styles.css'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
@@ -12,10 +14,13 @@ const supabase = supabaseUrl && publishableKey
   ? createClient(supabaseUrl, publishableKey)
   : null
 
-function AuthenticatedApp({ client }) {
+function AuthenticatedApp({ client, siteSettings, settingsError, onSiteSettingsChange }) {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [adminRoute, setAdminRoute] = useState(() => window.location.hash === '#/admin')
+  const [isAdmin, setIsAdmin] = useState(null)
+  const [adminError, setAdminError] = useState('')
 
   useEffect(() => {
     let active = true
@@ -42,15 +47,98 @@ function AuthenticatedApp({ client }) {
     }
   }, [client])
 
+  useEffect(() => {
+    const updateRoute = () => setAdminRoute(window.location.hash === '#/admin')
+    window.addEventListener('hashchange', updateRoute)
+    return () => window.removeEventListener('hashchange', updateRoute)
+  }, [])
+
+  useEffect(() => {
+    if (!session) {
+      setIsAdmin(false)
+      setAdminError('')
+      return
+    }
+
+    let active = true
+    setIsAdmin(null)
+    client.rpc('is_admin').then(({ data, error: roleError }) => {
+      if (!active) return
+      if (roleError) {
+        setAdminError(roleError.message)
+        setIsAdmin(false)
+      } else {
+        setAdminError('')
+        setIsAdmin(data === true)
+      }
+    }).catch((roleError) => {
+      if (!active) return
+      setAdminError(roleError instanceof Error ? roleError.message : 'Unbekannter Fehler bei der Rechteprüfung.')
+      setIsAdmin(false)
+    })
+
+    return () => { active = false }
+  }, [client, session?.user.id])
+
   if (loading) return <div className="auth-loading">Konto wird geladen …</div>
   if (error) return <div className="auth-loading" role="alert">Anmeldung konnte nicht geladen werden: {error}</div>
-  return session
-    ? <App user={session.user} supabase={client} />
-    : <AuthScreen supabase={client} />
+  if (!session) return <AuthScreen supabase={client} siteSettings={siteSettings} />
+  if (adminRoute) {
+    if (isAdmin === null) return <div className="auth-loading">Admin-Zugriff wird geprüft …</div>
+    if (!isAdmin) {
+      return (
+        <main className="auth-page admin-access-denied">
+          <section className="auth-form-panel">
+            <h1>Kein Admin-Zugriff</h1>
+            <p>Dieser Bereich ist nur für das Admin-Konto freigeschaltet.</p>
+            {adminError && <p className="auth-feedback auth-error" role="alert">Admin-Rechte konnten nicht geprüft werden: {adminError}</p>}
+            <button className="primary-button" onClick={() => { window.location.hash = '' }}>Zurück zum Messenger</button>
+          </section>
+        </main>
+      )
+    }
+    return <AdminPanel supabase={client} user={session.user} siteSettings={siteSettings} settingsError={settingsError} onSettingsChange={onSiteSettingsChange} onBack={() => { window.location.hash = '' }} />
+  }
+
+  return <App
+    user={session.user}
+    supabase={client}
+    siteSettings={siteSettings}
+    isAdmin={isAdmin === true}
+    onOpenAdmin={() => { window.location.hash = '/admin' }}
+  />
 }
 
 function Root() {
-  return supabase ? <AuthenticatedApp client={supabase} /> : <AuthScreen supabase={null} />
+  const [siteSettings, setSiteSettings] = useState(defaultSiteSettings)
+  const [settingsError, setSettingsError] = useState('')
+
+  useEffect(() => {
+    if (!supabase) return undefined
+
+    let active = true
+    supabase.from('site_settings').select('*').eq('id', 1).maybeSingle().then(({ data, error }) => {
+      if (!active) return
+      if (error) {
+        setSettingsError(error.message)
+        return
+      }
+      if (data) setSiteSettings({ ...defaultSiteSettings, ...data })
+    }).catch((loadError) => {
+      if (!active) return
+      setSettingsError(loadError instanceof Error ? loadError.message : 'Unbekannter Fehler beim Laden der Website-Einstellungen.')
+    })
+
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    document.title = `${siteSettings.brand_name} · Messenger`
+  }, [siteSettings.brand_name])
+
+  return supabase
+    ? <AuthenticatedApp client={supabase} siteSettings={siteSettings} settingsError={settingsError} onSiteSettingsChange={setSiteSettings} />
+    : <AuthScreen supabase={null} siteSettings={siteSettings} />
 }
 
 createRoot(document.getElementById('root')).render(<React.StrictMode><Root /></React.StrictMode>)

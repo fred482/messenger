@@ -115,7 +115,7 @@ function contactToChat(profile) {
   }
 }
 
-function App({ user, supabase }) {
+function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin }) {
   const [chats, setChats] = useState(initialChats)
   const [activeId, setActiveId] = useState('lena')
   const [search, setSearch] = useState('')
@@ -259,11 +259,11 @@ function App({ user, supabase }) {
   }
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" style={{ '--green': siteSettings.accent_color }}>
       <aside className="sidebar">
         <div className="brand-row">
-          <div className="brand-mark"><MessageCircle size={19} strokeWidth={2.5} /></div>
-          <span className="brand-name">klartext<span>.</span></span>
+          <div className="brand-mark">{siteSettings.logo_text || <MessageCircle size={19} strokeWidth={2.5} />}</div>
+          <span className="brand-name">{siteSettings.brand_name}<span>.</span></span>
           <button className="icon-button sidebar-more" aria-label="Menü öffnen" onClick={() => setDialog('settings')}><MoreHorizontal size={20} /></button>
         </div>
 
@@ -301,6 +301,7 @@ function App({ user, supabase }) {
         <div className="sidebar-bottom">
           <div className="privacy-mini"><ShieldCheck size={17} /><span><strong>Privatsphäre zuerst</strong><small>Dein Konto ohne Telefonnummer</small></span><Check size={15} /></div>
           <button className="sidebar-action" onClick={() => setDialog('settings')}><Settings2 size={17} /> Einstellungen <span>⌘ ,</span></button>
+          {isAdmin && <button className="sidebar-action" onClick={onOpenAdmin}><Settings2 size={17} /> Website bearbeiten</button>}
           <button className="sidebar-action" onClick={() => showNotice('Hilfe ist in diesem Prototyp noch nicht verfügbar.')}><CircleHelp size={17} /> Hilfe & Feedback</button>
         </div>
       </aside>
@@ -353,7 +354,7 @@ function App({ user, supabase }) {
           <div className="detail-rule lower-rule" />
           <button className="detail-action" onClick={() => showNotice('Benachrichtigungen verwaltest du in den Geräteeinstellungen.')}><Bell size={17} /> Benachrichtigungen</button>
           <button className="detail-action danger-action" onClick={() => showNotice('Kontakt blockieren wird noch nicht unterstützt.')}><UserRound size={17} /> Kontakt blockieren</button>
-          <div className="detail-footnote"><LockKeyhole size={14} /><p>Kein Telefonbuch-Upload.<br />Kontakte per E-Mail hinzufügen.</p></div>
+          <div className="detail-footnote"><LockKeyhole size={14} /><p>Kein Telefonbuch-Upload.<br />Kontakte per Benutzername finden.</p></div>
         </>}
       </aside>}
 
@@ -378,6 +379,7 @@ function App({ user, supabase }) {
             <p className="modal-description">Dein Konto nutzt E-Mail und Passwort. Für die Anmeldung ist keine 2FA erforderlich.</p>
             <div className="signed-in-email"><span>E-Mail-Adresse</span><strong>{accountEmail}</strong></div>
             <div className="modal-note"><ShieldCheck size={15} /><span>{user.email_confirmed_at ? 'Deine E-Mail-Adresse wurde bestätigt.' : 'Bestätige deine E-Mail-Adresse für mehr Kontosicherheit.'} Die Anmeldung wird von Supabase verwaltet.</span></div>
+            {isAdmin && <button className="primary-button account-security-button" onClick={onOpenAdmin}><Settings2 size={16} /> Website bearbeiten</button>}
             <button className="logout-button" onClick={signOutAccount}><LogOut size={15} /> Abmelden</button>
           </>}
         </section>
