@@ -1044,7 +1044,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
         </>}
 
         {activeSection === 'contacts' && <>
-          <header className="activity-heading"><div><span className="activity-eyebrow">DEINE LISTE</span><h1>Kontakte</h1><p>Finde einen Kontakt und öffne einen Chat oder starte einen Anruf.</p></div><button className="secondary-button add-contact-button" aria-label="Neuen Kontakt hinzufügen" title="Neuen Kontakt hinzufügen" onClick={openContactDialog}><Plus size={16} /><span>Neuen Kontakt hinzufügen</span></button></header>
+          <header className="activity-heading contacts-heading"><div><span className="activity-eyebrow">DEINE LISTE</span><h1>Kontakte</h1><p>Finde einen Kontakt per Benutzername und öffne einen Chat oder starte einen Anruf.</p></div><button className="icon-button add-contact-button" aria-label="Neuen Kontakt per Benutzername hinzufügen" title="Neuen Kontakt hinzufügen" onClick={openContactDialog}><Plus size={18} /></button></header>
           <label className="contact-search-box">
             <Search size={17} />
             <input value={contactSearch} onChange={(event) => setContactSearch(event.target.value)} placeholder="Kontakte durchsuchen" aria-label="Kontakte durchsuchen" />

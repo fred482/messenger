@@ -143,6 +143,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .activity-eyebrow { color: var(--green); font-size: 9px; font-weight: 700; letter-spacing: 1.1px; }
 .activity-heading h1 { margin: 7px 0 5px; font: 700 25px 'Manrope', sans-serif; }
 .activity-heading p { max-width: 540px; margin: 0; color: #828c86; font-size: 12px; line-height: 1.6; }
+.contacts-heading { align-items: flex-start; }
+.add-contact-button { width: 38px; height: 38px; color: var(--green); background: #eaf3ee; border: 1px solid #dbe8df; }
+.add-contact-button:hover { color: white; background: var(--green); }
 .call-list, .settings-card, .momento-composer, .momento-feed, .status-upload-card, .status-grid, .activity-empty { width: min(760px, 100%); margin-right: auto; margin-left: auto; }
 .call-list { overflow: hidden; background: white; border: 1px solid #e7ece7; border-radius: 9px; }
 .call-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #edf0ed; }
