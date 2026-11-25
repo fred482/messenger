@@ -742,6 +742,16 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
       return
     }
 
+    if (demoMode) {
+      if (chats.some((chat) => chat.username === username)) {
+        setContactError('Dieser Kontakt ist bereits in deiner Liste.')
+        return
+      }
+      const displayName = username.split(/[_-]+/).filter(Boolean).map((part) => part[0].toUpperCase() + part.slice(1)).join(' ')
+      setContactResult({ id: `demo-${username}`, username, display_name: displayName })
+      return
+    }
+
     setContactBusy(true)
     try {
       const { data, error } = await supabase.rpc('find_profile_by_username', { search_username: username })
@@ -769,6 +779,15 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
 
   async function addContact() {
     if (!contactResult) return
+    if (demoMode) {
+      const chat = contactToChat(contactResult)
+      setChats((current) => [chat, ...current.filter((existing) => existing.id !== chat.id)])
+      setActiveId(chat.id)
+      setDialog(null)
+      showNotice(`${chat.name} wurde zu deinen Kontakten hinzugefügt.`)
+      return
+    }
+
     setContactBusy(true)
     setContactError('')
     try {
@@ -945,7 +964,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
         </>}
 
         {activeSection === 'contacts' && <>
-          <header className="activity-heading"><div><span className="activity-eyebrow">DEINE LISTE</span><h1>Kontakte</h1><p>Finde einen Kontakt und öffne einen Chat oder starte einen Anruf.</p></div><button className="icon-button new-chat" aria-label="Kontakt hinzufügen" title={demoMode ? 'Nur mit Anmeldung verfügbar' : 'Kontakt hinzufügen'} onClick={openContactDialog} disabled={demoMode}><Plus size={18} /></button></header>
+          <header className="activity-heading"><div><span className="activity-eyebrow">DEINE LISTE</span><h1>Kontakte</h1><p>Finde einen Kontakt und öffne einen Chat oder starte einen Anruf.</p></div><button className="secondary-button add-contact-button" aria-label="Neuen Kontakt hinzufügen" title="Neuen Kontakt hinzufügen" onClick={openContactDialog}><Plus size={16} /><span>Neuen Kontakt hinzufügen</span></button></header>
           <label className="contact-search-box">
             <Search size={17} />
             <input value={contactSearch} onChange={(event) => setContactSearch(event.target.value)} placeholder="Kontakte durchsuchen" aria-label="Kontakte durchsuchen" />
@@ -1110,11 +1129,15 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
       </aside>}
 
       <nav className="app-bottom-nav" aria-label="Hauptnavigation">
-        {appSections.map(({ id, label, icon: Icon }) => (
-          <button key={id} className={activeSection === id ? 'active' : ''} aria-label={id === 'messages' ? 'Zur Chatübersicht' : label} aria-current={activeSection === id ? 'page' : undefined} onClick={() => navigateToSection(id)}>
-            <Icon size={19} /><span>{label}</span>
-          </button>
-        ))}
+        {appSections.map(({ id, label, icon: Icon }) => {
+          const showBackToChats = id === 'messages' && activeSection === 'messages' && !mobileInboxOpen
+          const NavIcon = showBackToChats ? ArrowLeft : Icon
+          return (
+            <button key={id} className={`${activeSection === id ? 'active' : ''} ${showBackToChats ? 'back-to-chats' : ''}`} aria-label={showBackToChats ? 'Zurück zu allen Chats' : id === 'messages' ? 'Zur Chatübersicht' : label} aria-current={activeSection === id ? 'page' : undefined} onClick={() => navigateToSection(id)}>
+              <NavIcon size={19} /><span>{showBackToChats ? 'Alle Chats' : label}</span>
+            </button>
+          )
+        })}
       </nav>
 
       {incomingCall && <div className="call-backdrop">

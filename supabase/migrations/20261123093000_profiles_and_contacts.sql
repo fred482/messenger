@@ -100,7 +100,8 @@ as $$
     and exists (
       select 1
       from auth.users u
-      where u.id = p.id and u.email_confirmed_at is not null
+      where u.id = p.id
+        and (u.email_confirmed_at is not null or u.phone_confirmed_at is not null)
     )
   limit 1;
 $$;

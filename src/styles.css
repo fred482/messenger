@@ -252,7 +252,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .local-prototype-note svg { flex: 0 0 auto; color: var(--green); }
 .settings-card .primary-button, .settings-card .secondary-button { width: 100%; margin-top: 0; }
 .secondary-button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; color: #4a725c; background: white; border: 1px solid #cddacf; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; }
-.secondary-button:hover { background: #f3f8f4; }
+ .secondary-button:hover { background: #f3f8f4; }
+.activity-heading .add-contact-button { flex: 0 0 auto; min-height: 38px; margin: 0; padding: 0 11px; }
 .settings-card .logout-button { align-self: flex-start; margin-top: 0; }
 
 .details-panel { display: flex; flex-direction: column; padding: 21px 17px; background: #fcfdfb; border-left: 1px solid var(--line); }
@@ -360,6 +361,15 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .auth-mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 16px; padding: 3px; background: #f2f5f1; border-radius: 6px; }
 .auth-mode-switch button { min-height: 34px; color: #7d8781; background: transparent; border: 0; border-radius: 4px; font-size: 11px; cursor: pointer; }
 .auth-mode-switch button.active { color: #334139; background: white; box-shadow: 0 1px 3px #1c332314; font-weight: 700; }
+.auth-method-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 0 0 14px; padding: 0; border: 0; }
+.auth-method-switch legend { grid-column: 1 / -1; margin-bottom: 7px; color: #59635e; font-size: 10px; font-weight: 600; }
+.auth-method-switch label { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; color: #69766f; background: #f5f7f4; border: 1px solid #e4e9e4; border-radius: 6px; font-size: 10px; cursor: pointer; }
+.auth-method-switch label input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.auth-method-switch label.chosen { color: #276c54; background: #edf5ef; border-color: #78a991; font-weight: 700; }
+.auth-pending-phone { display: flex; align-items: center; gap: 10px; padding: 12px; color: #3f735d; background: #edf5ef; border-radius: 6px; }
+.auth-pending-phone span { display: flex; flex-direction: column; gap: 3px; }
+.auth-pending-phone strong { font-size: 11px; }
+.auth-pending-phone small { color: #7a8a81; font-size: 10px; }
 .auth-form-footnote { display: flex; align-items: center; justify-content: center; gap: 5px; margin: 14px 0 0; color: #86918a; font-size: 9px; text-align: center; }
 .auth-footer { display: flex; justify-content: space-between; gap: 12px; padding: 17px 4vw 0; color: #98a19b; border-top: 1px solid #e5ebe5; font-size: 9px; letter-spacing: .7px; }
 .auth-footer-links { display: flex; gap: 14px; }
@@ -454,6 +464,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
   .app-bottom-nav { padding-bottom: env(safe-area-inset-bottom); }
   .app-bottom-nav button { gap: 2px; font-size: 8px; }
   .app-bottom-nav button span { white-space: nowrap; letter-spacing: -.25px; }
+  .app-bottom-nav button.back-to-chats span { font-size: 0; }
   .app-bottom-nav button svg { width: 17px; height: 17px; }
   .mobile-inbox { display: flex; min-width: 0; min-height: 0; flex-direction: column; padding: 18px 14px 0; background: #fff; }
   .mobile-inbox-header { display: flex; align-items: center; gap: 10px; margin-bottom: 17px; }
@@ -490,6 +501,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
   .activity-page { padding: 14px 12px 20px; }
   .activity-heading { gap: 10px; margin-bottom: 18px; }
   .activity-heading h1 { font-size: 21px; }
+  .activity-heading .add-contact-button { width: 38px; min-width: 38px; padding: 0; }
+  .activity-heading .add-contact-button span { display: none; }
   .activity-heading p { font-size: 11px; }
   .contact-search-box input { font-size: 16px; }
   .contact-row { gap: 5px; padding: 8px; }

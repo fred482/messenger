@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowRight, LockKeyhole, Mail, MessageCircle, ShieldCheck } from 'lucide-react'
+import { ArrowRight, LockKeyhole, Mail, MessageCircle, Phone, ShieldCheck } from 'lucide-react'
 import { defaultSiteSettings } from './siteSettings.js'
 
 export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
@@ -7,6 +7,10 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
+  const [authMethod, setAuthMethod] = useState('email')
+  const [phone, setPhone] = useState('')
+  const [otp, setOtp] = useState('')
+  const [pendingPhone, setPendingPhone] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const [error, setError] = useState('')
@@ -20,6 +24,14 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
     setError('')
     setNotice('')
     setPasswordConfirmation('')
+    setOtp('')
+    setPendingPhone('')
+  }
+
+  function changeAuthMethod(nextMethod) {
+    setAuthMethod(nextMethod)
+    setError('')
+    setNotice('')
   }
 
   async function handleSubmit(event) {
@@ -61,14 +73,28 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
           return
         }
 
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
-            data: { full_name: name.trim(), username: normalizedUsername },
-          },
-        })
+        const normalizedPhone = phone.trim().replace(/[\s()-]/g, '')
+        if (authMethod === 'phone' && !/^\+[1-9]\d{7,14}$/.test(normalizedPhone)) {
+          setError('Bitte gib die Nummer im internationalen Format ein, zum Beispiel +491761234567.')
+          return
+        }
+
+        const signUpPayload = authMethod === 'phone'
+          ? {
+              phone: normalizedPhone,
+              password,
+              options: { data: { full_name: name.trim(), username: normalizedUsername } },
+            }
+          : {
+              email: email.trim(),
+              password,
+              options: {
+                emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+                data: { full_name: name.trim(), username: normalizedUsername },
+              },
+            }
+
+        const { data, error: signUpError } = await supabase.auth.signUp(signUpPayload)
 
         if (signUpError) {
           setError(signUpError.code === '23505' || signUpError.message.includes('USERNAME_TAKEN')
@@ -78,16 +104,21 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
         }
 
         if (!data.session) {
-          setNotice('Öffne deine E-Mail und klicke auf den Bestätigungslink. Danach wirst du angemeldet.')
+          if (authMethod === 'phone') {
+            setPendingPhone(normalizedPhone)
+            setNotice('Gib den sechsstelligen Code aus der SMS ein.')
+          } else {
+            setNotice('Öffne deine E-Mail und klicke auf den Bestätigungslink. Danach wirst du angemeldet.')
+          }
           setPassword('')
           setPasswordConfirmation('')
           setUsername('')
         }
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        })
+        const signInPayload = authMethod === 'phone'
+          ? { phone: phone.trim().replace(/[\s()-]/g, ''), password }
+          : { email: email.trim(), password }
+        const { error: signInError } = await supabase.auth.signInWithPassword(signInPayload)
 
         if (signInError) {
           setError(signInError.code === 'email_not_confirmed'
@@ -97,6 +128,48 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
       }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Ein unbekannter Fehler bei der Anmeldung ist aufgetreten.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function verifyPhoneOtp(event) {
+    event.preventDefault()
+    setError('')
+    setNotice('')
+    setBusy(true)
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        phone: pendingPhone,
+        token: otp.trim(),
+        type: 'sms',
+      })
+      if (verifyError) {
+        setError(verifyError.message)
+        return
+      }
+      setOtp('')
+      setPendingPhone('')
+    } catch (verifyCatchError) {
+      setError(verifyCatchError instanceof Error ? verifyCatchError.message : 'Der SMS-Code konnte nicht geprüft werden.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function resendPhoneOtp() {
+    setError('')
+    setNotice('')
+    setBusy(true)
+    try {
+      const { error: resendError } = await supabase.auth.resend({ type: 'sms', phone: pendingPhone })
+      if (resendError) {
+        setError(resendError.message)
+        return
+      }
+      setNotice('Ein neuer SMS-Code wurde gesendet.')
+    } catch (resendCatchError) {
+      setError(resendCatchError instanceof Error ? resendCatchError.message : 'Die SMS konnte nicht erneut gesendet werden.')
     } finally {
       setBusy(false)
     }
@@ -119,16 +192,32 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
               <button type="button" role="tab" aria-selected={!isSignUp} className={!isSignUp ? 'active' : ''} onClick={() => changeMode('sign-in')}>Anmelden</button>
               <button type="button" role="tab" aria-selected={isSignUp} className={isSignUp ? 'active' : ''} onClick={() => changeMode('sign-up')}>Konto erstellen</button>
             </div>
+            {pendingPhone ? <form className="modal-form auth-form" onSubmit={verifyPhoneOtp}>
+              <div className="auth-pending-phone"><Phone size={18} /><span><strong>SMS-Bestätigung</strong><small>{pendingPhone}</small></span></div>
+              <label>Bestätigungscode<input type="text" inputMode="numeric" autoComplete="one-time-code" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-stelliger Code" minLength={6} maxLength={6} required /></label>
+              {error && <p className="auth-feedback auth-error" role="alert">{error}</p>}
+              {notice && <p className="auth-feedback auth-success" role="status">{notice}</p>}
+              <button className="primary-button" type="submit" disabled={busy || otp.length !== 6}>{busy ? 'Bitte warten …' : 'Nummer bestätigen'} <ArrowRight size={16} /></button>
+              <button className="secondary-button" type="button" onClick={resendPhoneOtp} disabled={busy}>Code erneut senden</button>
+            </form> : <>
+            <fieldset className="auth-method-switch">
+              <legend>{isSignUp ? 'Registrierung über' : 'Anmeldung über'}</legend>
+              <label className={authMethod === 'email' ? 'chosen' : ''}><input type="radio" name="auth-method" checked={authMethod === 'email'} onChange={() => changeAuthMethod('email')} /><Mail size={16} /><span>E-Mail</span></label>
+              <label className={authMethod === 'phone' ? 'chosen' : ''}><input type="radio" name="auth-method" checked={authMethod === 'phone'} onChange={() => changeAuthMethod('phone')} /><Phone size={16} /><span>Telefonnummer</span></label>
+            </fieldset>
             <form className="modal-form auth-form" onSubmit={handleSubmit}>
               {isSignUp && <label>Name<input type="text" autoComplete="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Dein Name" required /></label>}
               {isSignUp && <label>Benutzername<input type="text" autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="z.B. max_muster" minLength={3} maxLength={24} pattern="[A-Za-z0-9_]{3,24}" required /></label>}
-              <label>E-Mail-Adresse<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@beispiel.de" required /></label>
+              {authMethod === 'email' && <label>E-Mail-Adresse<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@beispiel.de" required /></label>}
+              {(!isSignUp && authMethod === 'phone') && <label>Telefonnummer<input type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+49 176 1234567" required /></label>}
+              {isSignUp && authMethod === 'phone' && <label>Telefonnummer<input type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="+49 176 1234567" required /></label>}
               <label>Passwort<input type="password" autoComplete={isSignUp ? 'new-password' : 'current-password'} minLength={isSignUp ? 8 : undefined} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignUp ? 'Mindestens 8 Zeichen' : 'Dein Passwort'} required /></label>
               {isSignUp && <label>Passwort bestätigen<input type="password" autoComplete="new-password" minLength={8} value={passwordConfirmation} onChange={(event) => setPasswordConfirmation(event.target.value)} placeholder="Passwort wiederholen" required /></label>}
               {error && <p className="auth-feedback auth-error" role="alert">{error}</p>}
               {notice && <p className="auth-feedback auth-success" role="status">{notice}</p>}
               <button className="primary-button" type="submit" disabled={busy || !supabase}>{busy ? 'Bitte warten …' : !supabase ? 'Demnächst verfügbar' : isSignUp ? 'Konto erstellen' : 'Anmelden'} <ArrowRight size={16} /></button>
             </form>
+            </>}
             <p className="auth-form-footnote"><ShieldCheck size={13} /> Die Anmeldung wird sicher von Supabase verwaltet.</p>
           </div>
         </div>
