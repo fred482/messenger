@@ -127,6 +127,7 @@ function Root() {
   const [settingsError, setSettingsError] = useState('')
   const [localPreview, setLocalPreview] = useState(() => window.location.hash === '#/preview')
   const [localDemo, setLocalDemo] = useState(() => window.location.hash === '#/demo')
+  const [demoAuth, setDemoAuth] = useState(() => window.location.hash === '#/demo-auth')
   const [previewSettings, setPreviewSettings] = useState(defaultSiteSettings)
   const [previewError, setPreviewError] = useState('')
   const [previewLoaded, setPreviewLoaded] = useState(false)
@@ -136,6 +137,7 @@ function Root() {
     const updateRoute = () => {
       setLocalPreview(window.location.hash === '#/preview')
       setLocalDemo(window.location.hash === '#/demo')
+      setDemoAuth(window.location.hash === '#/demo-auth')
     }
     window.addEventListener('hashchange', updateRoute)
     return () => window.removeEventListener('hashchange', updateRoute)
@@ -207,6 +209,15 @@ function Root() {
         setPreviewReturn(null)
       }}
       localOnly
+    />
+  }
+
+  if (demoAuth) {
+    return <AuthScreen
+      supabase={null}
+      siteSettings={siteSettings}
+      demoMode
+      onDemoContinue={() => { window.location.hash = '/demo' }}
     />
   }
 

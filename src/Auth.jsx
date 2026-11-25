@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ArrowRight, LockKeyhole, Mail, MessageCircle, Phone, ShieldCheck } from 'lucide-react'
 import { defaultSiteSettings } from './siteSettings.js'
 
-export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
+export function AuthScreen({ supabase, siteSettings = defaultSiteSettings, demoMode = false, onDemoContinue }) {
   const [mode, setMode] = useState('sign-up')
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
@@ -40,7 +40,37 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
     setNotice('')
 
     if (!supabase) {
-      setError('Die Anmeldung ist noch nicht eingerichtet.')
+      if (!demoMode) {
+        setError('Die Anmeldung ist noch nicht eingerichtet.')
+        return
+      }
+
+      if (isSignUp) {
+        if (password !== passwordConfirmation) {
+          setError('Die Passwörter stimmen nicht überein.')
+          return
+        }
+        if (!/^[a-z0-9_]{3,24}$/.test(username.trim().toLowerCase())) {
+          setError('Der Benutzername muss 3–24 Zeichen lang sein und darf nur Buchstaben, Zahlen und _ enthalten.')
+          return
+        }
+        if (authMethod === 'phone') {
+          const normalizedPhone = phone.trim().replace(/[\s()-]/g, '')
+          if (!/^\+[1-9]\d{7,14}$/.test(normalizedPhone)) {
+            setError('Bitte gib die Nummer im internationalen Format ein, zum Beispiel +491761234567.')
+            return
+          }
+          setPendingPhone(normalizedPhone)
+          setNotice('Demo-Modus: Gib einen beliebigen sechsstelligen Code ein.')
+          setPassword('')
+          setPasswordConfirmation('')
+          return
+        }
+        onDemoContinue?.()
+        return
+      }
+
+      onDemoContinue?.()
       return
     }
 
@@ -135,6 +165,14 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
 
   async function verifyPhoneOtp(event) {
     event.preventDefault()
+    if (demoMode) {
+      if (otp.length !== 6) {
+        setError('Bitte gib einen sechsstelligen Code ein.')
+        return
+      }
+      onDemoContinue?.()
+      return
+    }
     setError('')
     setNotice('')
     setBusy(true)
@@ -158,6 +196,11 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
   }
 
   async function resendPhoneOtp() {
+    if (demoMode) {
+      setError('')
+      setNotice('Demo-Modus: Ein neuer Code ist nicht erforderlich. Jeder sechsstellige Code funktioniert.')
+      return
+    }
     setError('')
     setNotice('')
     setBusy(true)
@@ -221,7 +264,7 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings }) {
             <p className="auth-form-footnote"><ShieldCheck size={13} /> Die Anmeldung wird sicher von Supabase verwaltet.</p>
           </div>
         </div>
-        <footer className="auth-footer"><span>KLARTEXT MESSENGER</span><span className="auth-footer-links"><a href="#/demo">Chat testen</a><a href="#/preview">Chat-Oberfläche bearbeiten</a></span></footer>
+        <footer className="auth-footer"><span>KLARTEXT MESSENGER</span><span className="auth-footer-links"><a href="#/demo-auth">Demo mit Anmeldung testen</a><a href="#/demo">Chat testen</a><a href="#/preview">Chat-Oberfläche bearbeiten</a></span></footer>
       </section>
     </main>
   )
