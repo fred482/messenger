@@ -39,6 +39,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .section-label, .details-top { color: #8a928e; font-size: 10px; font-weight: 700; letter-spacing: 1px; }
 .new-chat { width: 27px; height: 27px; color: var(--green); background: #eaf3ee; }
 .new-chat:hover { color: white; background: var(--green); }
+.new-chat-wrap { position: relative; }
+.new-chat-menu { position: absolute; z-index: 20; top: calc(100% + 8px); right: 0; width: 220px; padding: 5px; background: white; border: 1px solid #dde5df; border-radius: 8px; box-shadow: 0 14px 40px #1c332520; }
+.new-chat-menu button { display: flex; align-items: center; width: 100%; gap: 9px; padding: 9px; color: #607067; text-align: left; background: transparent; border: 0; border-radius: 6px; cursor: pointer; }
+.new-chat-menu button:hover { background: #f1f5f2; }
+.new-chat-menu button > svg { flex: 0 0 auto; color: var(--green); }
+.new-chat-menu button > span { display: flex; flex-direction: column; gap: 3px; }
+.new-chat-menu strong { color: #38433d; font-size: 11px; }
+.new-chat-menu small { color: #929a95; font-size: 9px; }
 .search-box { display: flex; align-items: center; gap: 8px; height: 36px; margin: 0 1px 14px; padding: 0 9px; color: #9ba29f; background: white; border: 1px solid #e9ece8; border-radius: 6px; }
 .search-box input { width: 100%; min-width: 0; color: var(--ink); background: transparent; border: 0; outline: 0; font-size: 12px; }
 .search-box kbd { color: #a4aaa7; font: 10px 'DM Sans', sans-serif; white-space: nowrap; }
@@ -488,7 +496,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
   .mobile-inbox-header { display: flex; align-items: center; gap: 10px; margin-bottom: 17px; }
   .mobile-inbox-header > div:nth-child(2) { min-width: 0; }
   .mobile-inbox-header h1 { margin: 2px 0 0; font: 700 20px 'Manrope', sans-serif; }
+  .mobile-inbox-header .new-chat-wrap { margin-left: auto; }
   .mobile-inbox-header .new-chat { margin-left: auto; width: 36px; height: 36px; }
+  .mobile-inbox-header .new-chat-menu { position: fixed; top: 68px; right: 14px; width: 210px; }
   .mobile-search-box { display: flex; align-items: center; min-height: 42px; gap: 8px; margin-bottom: 12px; padding: 0 10px; color: #929b95; background: #f5f7f4; border: 1px solid #e8ece8; border-radius: 8px; }
   .mobile-search-box input { flex: 1; min-width: 0; color: var(--ink); background: transparent; border: 0; outline: 0; font-size: 16px; }
   .mobile-search-box button { display: grid; place-items: center; width: 30px; height: 34px; padding: 0; color: #7d8981; background: transparent; border: 0; }

@@ -201,7 +201,6 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
   const [momentAudience, setMomentAudience] = useState('friends')
   const [momentFeedAudience, setMomentFeedAudience] = useState('friends')
   const messageEnd = useRef(null)
-  const newChatMenuRef = useRef(null)
   const localVideoRef = useRef(null)
   const remoteVideoRef = useRef(null)
   const peerConnectionRef = useRef(null)
@@ -343,7 +342,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
         if (event.key === 'Escape') setNewChatMenuOpen(false)
         return
       }
-      if (!newChatMenuRef.current?.contains(event.target)) setNewChatMenuOpen(false)
+      if (!event.target.closest('.new-chat-wrap')) setNewChatMenuOpen(false)
     }
 
     document.addEventListener('pointerdown', closeNewChatMenu)
@@ -907,7 +906,13 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
 
         <div className="section-label-row">
           <span className="section-label">NACHRICHTEN</span>
-          <button className="icon-button new-chat" aria-label="Neuen Chat starten" title={demoMode ? 'Nur mit Anmeldung verfügbar' : 'Neuen Chat starten'} onClick={openContactDialog} disabled={demoMode}><Plus size={18} /></button>
+          <div className="new-chat-wrap">
+            <button className="icon-button new-chat" aria-label={newChatMenuOpen ? 'Neues-Chat-Menü schließen' : 'Neuen Chat oder Gruppe starten'} title={newChatMenuOpen ? 'Menü schließen' : 'Neuen Chat oder Gruppe starten'} aria-expanded={newChatMenuOpen} onClick={() => setNewChatMenuOpen((open) => !open)}>{newChatMenuOpen ? <X size={18} /> : <Plus size={18} />}</button>
+            {newChatMenuOpen && <div className="new-chat-menu" role="menu">
+              <button type="button" role="menuitem" onClick={openContactDialog}><MessageCircle size={16} /><span><strong>Neuer Chat</strong><small>Mit einer Person beginnen</small></span></button>
+              <button type="button" role="menuitem" onClick={openGroupDialog}><UserRound size={16} /><span><strong>Neue Gruppe</strong><small>Mehrere Kontakte auswählen</small></span></button>
+            </div>}
+          </div>
         </div>
 
         <label className="search-box">
@@ -943,7 +948,13 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
         <header className="mobile-inbox-header">
           <div className="brand-mark">{siteSettings.logo_text || <MessageCircle size={19} strokeWidth={2.5} />}</div>
           <div><span className="activity-eyebrow">NACHRICHTEN</span><h1>Deine Chats</h1></div>
-          <button className="icon-button new-chat" aria-label="Neuen Chat starten" title={demoMode ? 'Nur mit Anmeldung verfügbar' : 'Neuen Chat starten'} onClick={openContactDialog} disabled={demoMode}><Plus size={18} /></button>
+          <div className="new-chat-wrap">
+            <button className="icon-button new-chat" aria-label={newChatMenuOpen ? 'Neues-Chat-Menü schließen' : 'Neuen Chat oder Gruppe starten'} title={newChatMenuOpen ? 'Menü schließen' : 'Neuen Chat oder Gruppe starten'} aria-expanded={newChatMenuOpen} onClick={() => setNewChatMenuOpen((open) => !open)}>{newChatMenuOpen ? <X size={18} /> : <Plus size={18} />}</button>
+            {newChatMenuOpen && <div className="new-chat-menu" role="menu">
+              <button type="button" role="menuitem" onClick={openContactDialog}><MessageCircle size={16} /><span><strong>Neuer Chat</strong><small>Mit einer Person beginnen</small></span></button>
+              <button type="button" role="menuitem" onClick={openGroupDialog}><UserRound size={16} /><span><strong>Neue Gruppe</strong><small>Mehrere Kontakte auswählen</small></span></button>
+            </div>}
+          </div>
         </header>
         <label className="mobile-search-box">
           <Search size={16} />
@@ -969,13 +980,6 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
           {activeChat && <Avatar chat={activeChat} size="small" />}
           <div className="conversation-person"><strong>{activeChat?.name}</strong><span>{activeChat?.online ? 'Gerade online' : activeChat?.username ? `@${activeChat.username}` : activeChat?.email}</span></div>
           <div className="header-actions">
-            <div className="header-new-chat-wrap" ref={newChatMenuRef}>
-              <button className="icon-button header-new-chat-button" aria-label={newChatMenuOpen ? 'Neues-Chat-Menü schließen' : 'Neuen Chat oder Gruppe starten'} title={newChatMenuOpen ? 'Menü schließen' : 'Neuen Chat oder Gruppe starten'} aria-expanded={newChatMenuOpen} onClick={() => setNewChatMenuOpen((open) => !open)}>{newChatMenuOpen ? <X size={18} /> : <Plus size={18} />}</button>
-              {newChatMenuOpen && <div className="header-new-chat-menu" role="menu">
-                <button type="button" role="menuitem" onClick={openContactDialog}><MessageCircle size={16} /><span><strong>Neuer Chat</strong><small>Mit einer Person beginnen</small></span></button>
-                <button type="button" role="menuitem" onClick={openGroupDialog}><UserRound size={16} /><span><strong>Neue Gruppe</strong><small>Mehrere Kontakte auswählen</small></span></button>
-              </div>}
-            </div>
             <button className="icon-button header-call-button phone-call-button" aria-label={`Sprachanruf mit ${activeChat?.name} starten`} title="Sprachanruf" onClick={() => startCall('audio')}><span className="header-call-emoji" aria-hidden="true">📞</span></button>
             <button className="icon-button header-call-button video-call-button" aria-label={`Videoanruf mit ${activeChat?.name} starten`} title="Videoanruf" onClick={() => startCall('video')}><span className="header-call-emoji" aria-hidden="true">📹</span></button>
             <button className={`icon-button details-toggle ${detailsOpen ? 'selected' : ''}`} aria-label="Sicherheitsdetails anzeigen" title="Sicherheitsdetails" onClick={() => setDetailsOpen((open) => !open)}><SlidersHorizontal size={18} /></button>
