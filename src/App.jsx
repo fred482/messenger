@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  ArrowLeft,
   ArrowDownLeft,
   Bell,
   Camera,
@@ -876,10 +877,10 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
         </div>
       </section> : <section className="conversation" aria-label={`Chat mit ${activeChat?.name}`}>
         <header className="conversation-header">
+          <button className="icon-button back-button" aria-label="Zur Chatübersicht" title="Zurück zu Chats" onClick={() => { setDetailsOpen(false); setMobileInboxOpen(true) }}><ArrowLeft size={19} /></button>
           {activeChat && <Avatar chat={activeChat} size="small" />}
           <div className="conversation-person"><strong>{activeChat?.name}</strong><span>{activeChat?.online ? 'Gerade online' : activeChat?.username ? `@${activeChat.username}` : activeChat?.email}</span></div>
           <div className="header-actions">
-            <button className="icon-button mobile-chat-list-button" aria-label="Zur Chatübersicht" title="Chats anzeigen" onClick={() => { setDetailsOpen(false); setMobileInboxOpen(true) }}><MessageCircle size={18} /><span>Chats</span></button>
             <button className="icon-button header-call-button phone-call-button" aria-label={`Sprachanruf mit ${activeChat?.name} starten`} title="Sprachanruf" onClick={() => startCall('audio')}><span className="header-call-emoji" aria-hidden="true">📞</span></button>
             <button className="icon-button header-call-button video-call-button" aria-label={`Videoanruf mit ${activeChat?.name} starten`} title="Videoanruf" onClick={() => startCall('video')}><span className="header-call-emoji" aria-hidden="true">📹</span></button>
             <button className={`icon-button details-toggle ${detailsOpen ? 'selected' : ''}`} aria-label="Sicherheitsdetails anzeigen" title="Sicherheitsdetails" onClick={() => setDetailsOpen((open) => !open)}><SlidersHorizontal size={18} /></button>
