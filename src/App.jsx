@@ -201,6 +201,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
   const [momentAudience, setMomentAudience] = useState('friends')
   const [momentFeedAudience, setMomentFeedAudience] = useState('friends')
   const messageEnd = useRef(null)
+  const newChatMenuRef = useRef(null)
   const localVideoRef = useRef(null)
   const remoteVideoRef = useRef(null)
   const peerConnectionRef = useRef(null)
@@ -333,6 +334,25 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
       return entries
     })
   }
+
+  useEffect(() => {
+    if (!newChatMenuOpen) return undefined
+
+    function closeNewChatMenu(event) {
+      if (event.type === 'keydown') {
+        if (event.key === 'Escape') setNewChatMenuOpen(false)
+        return
+      }
+      if (!newChatMenuRef.current?.contains(event.target)) setNewChatMenuOpen(false)
+    }
+
+    document.addEventListener('pointerdown', closeNewChatMenu)
+    document.addEventListener('keydown', closeNewChatMenu)
+    return () => {
+      document.removeEventListener('pointerdown', closeNewChatMenu)
+      document.removeEventListener('keydown', closeNewChatMenu)
+    }
+  }, [newChatMenuOpen])
 
   useEffect(() => {
     if (demoMode || !supabase) return undefined
@@ -949,8 +969,8 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
           {activeChat && <Avatar chat={activeChat} size="small" />}
           <div className="conversation-person"><strong>{activeChat?.name}</strong><span>{activeChat?.online ? 'Gerade online' : activeChat?.username ? `@${activeChat.username}` : activeChat?.email}</span></div>
           <div className="header-actions">
-            <div className="header-new-chat-wrap">
-              <button className="icon-button header-new-chat-button" aria-label="Neuen Chat oder Gruppe starten" title="Neuen Chat oder Gruppe starten" aria-expanded={newChatMenuOpen} onClick={() => setNewChatMenuOpen((open) => !open)}><Plus size={18} /></button>
+            <div className="header-new-chat-wrap" ref={newChatMenuRef}>
+              <button className="icon-button header-new-chat-button" aria-label={newChatMenuOpen ? 'Neues-Chat-Menü schließen' : 'Neuen Chat oder Gruppe starten'} title={newChatMenuOpen ? 'Menü schließen' : 'Neuen Chat oder Gruppe starten'} aria-expanded={newChatMenuOpen} onClick={() => setNewChatMenuOpen((open) => !open)}>{newChatMenuOpen ? <X size={18} /> : <Plus size={18} />}</button>
               {newChatMenuOpen && <div className="header-new-chat-menu" role="menu">
                 <button type="button" role="menuitem" onClick={openContactDialog}><MessageCircle size={16} /><span><strong>Neuer Chat</strong><small>Mit einer Person beginnen</small></span></button>
                 <button type="button" role="menuitem" onClick={openGroupDialog}><UserRound size={16} /><span><strong>Neue Gruppe</strong><small>Mehrere Kontakte auswählen</small></span></button>
