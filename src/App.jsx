@@ -173,6 +173,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
   const [detailsOpen, setDetailsOpen] = useState(() => window.matchMedia('(min-width: 1081px)').matches)
   const [dialog, setDialog] = useState(null)
   const [newChatMenuOpen, setNewChatMenuOpen] = useState(false)
+  const [contactDialogPurpose, setContactDialogPurpose] = useState('chat')
   const [groupName, setGroupName] = useState('')
   const [groupMembers, setGroupMembers] = useState([])
   const [notice, setNotice] = useState('')
@@ -751,6 +752,16 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
     setContactResult(null)
     setContactError('')
     setNewChatMenuOpen(false)
+    setContactDialogPurpose('chat')
+    setDialog('contact')
+  }
+
+  function openNewContactDialog() {
+    setContactUsername('')
+    setContactResult(null)
+    setContactError('')
+    setNewChatMenuOpen(false)
+    setContactDialogPurpose('contact')
     setDialog('contact')
   }
 
@@ -1044,7 +1055,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
         </>}
 
         {activeSection === 'contacts' && <>
-          <header className="activity-heading contacts-heading"><div><span className="activity-eyebrow">DEINE LISTE</span><h1>Kontakte</h1><p>Finde einen Kontakt per Benutzername und öffne einen Chat oder starte einen Anruf.</p></div><button className="icon-button add-contact-button" aria-label="Neuen Kontakt per Benutzername hinzufügen" title="Neuen Kontakt hinzufügen" onClick={openContactDialog}><Plus size={18} /></button></header>
+          <header className="activity-heading contacts-heading"><div><span className="activity-eyebrow">DEINE LISTE</span><h1>Kontakte</h1><p>Finde einen Kontakt per Benutzername und öffne einen Chat oder starte einen Anruf.</p></div><button className="icon-button add-contact-button" aria-label="Neuen Kontakt per Benutzername hinzufügen" title="Neuen Kontakt hinzufügen" onClick={openNewContactDialog}><Plus size={18} /></button></header>
           <label className="contact-search-box">
             <Search size={17} />
             <input value={contactSearch} onChange={(event) => setContactSearch(event.target.value)} placeholder="Kontakte durchsuchen" aria-label="Kontakte durchsuchen" />
@@ -1255,8 +1266,8 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
           <button className="icon-button modal-close" aria-label="Schließen" onClick={() => setDialog(null)}><X size={18} /></button>
           {dialog === 'contact' ? <>
             <div className="modal-icon"><Plus size={20} /></div>
-            <h2 id="modal-title">Neuen Chat starten</h2>
-            <p className="modal-description">Suche nach dem eindeutigen Benutzernamen. Die Person muss bereits ein Konto erstellt haben.</p>
+            <h2 id="modal-title">{contactDialogPurpose === 'contact' ? 'Neuen Kontakt hinzufügen' : 'Neuen Chat starten'}</h2>
+            <p className="modal-description">{contactDialogPurpose === 'contact' ? 'Finde einen neuen Kontakt per Benutzername. Die Person muss bereits ein Konto erstellt haben.' : 'Suche nach dem eindeutigen Benutzernamen. Die Person muss bereits ein Konto erstellt haben.'}</p>
             <form className="modal-form" onSubmit={findContact}>
               <label>Benutzername<input name="username" value={contactUsername} onChange={(event) => setContactUsername(event.target.value)} placeholder="z.B. max_muster" minLength={3} maxLength={24} required autoFocus /></label>
               {contactError && <p className="auth-feedback auth-error" role="alert">{contactError}</p>}
