@@ -98,6 +98,8 @@ const initialChats = [
     email: '3 Mitglieder',
     initials: 'WR',
     color: 'yellow',
+    isGroup: true,
+    members: ['lena', 'jonas', 'amira'],
     online: false,
     time: 'Mo.',
     unread: 0,
@@ -170,6 +172,9 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
   const [message, setMessage] = useState('')
   const [detailsOpen, setDetailsOpen] = useState(() => window.matchMedia('(min-width: 1081px)').matches)
   const [dialog, setDialog] = useState(null)
+  const [newChatMenuOpen, setNewChatMenuOpen] = useState(false)
+  const [groupName, setGroupName] = useState('')
+  const [groupMembers, setGroupMembers] = useState([])
   const [notice, setNotice] = useState('')
   const [contactUsername, setContactUsername] = useState('')
   const [contactResult, setContactResult] = useState(null)
@@ -726,7 +731,51 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
     setContactUsername('')
     setContactResult(null)
     setContactError('')
+    setNewChatMenuOpen(false)
     setDialog('contact')
+  }
+
+  function openGroupDialog() {
+    setGroupName('')
+    setGroupMembers([])
+    setNewChatMenuOpen(false)
+    setDialog('group')
+  }
+
+  function toggleGroupMember(chatId) {
+    setGroupMembers((current) => current.includes(chatId)
+      ? current.filter((id) => id !== chatId)
+      : [...current, chatId])
+  }
+
+  function createGroup(event) {
+    event.preventDefault()
+    const name = groupName.trim()
+    if (!name || groupMembers.length < 2) return
+
+    const members = chats.filter((chat) => groupMembers.includes(chat.id) && !chat.isGroup)
+    const initials = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
+    const group = {
+      id: `group-${Date.now()}`,
+      name,
+      email: `${members.length} Mitglieder`,
+      initials: initials || 'GR',
+      color: 'yellow',
+      online: false,
+      time: 'Neu',
+      unread: 0,
+      preview: 'Gruppe erstellt',
+      messages: [],
+      isGroup: true,
+      members: members.map((member) => member.id),
+    }
+
+    setChats((current) => [group, ...current])
+    setActiveId(group.id)
+    setActiveSection('messages')
+    setMobileInboxOpen(false)
+    setDialog(null)
+    showNotice(`Gruppe „${name}“ wurde erstellt.`)
   }
 
   async function findContact(event) {
@@ -900,6 +949,13 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
           {activeChat && <Avatar chat={activeChat} size="small" />}
           <div className="conversation-person"><strong>{activeChat?.name}</strong><span>{activeChat?.online ? 'Gerade online' : activeChat?.username ? `@${activeChat.username}` : activeChat?.email}</span></div>
           <div className="header-actions">
+            <div className="header-new-chat-wrap">
+              <button className="icon-button header-new-chat-button" aria-label="Neuen Chat oder Gruppe starten" title="Neuen Chat oder Gruppe starten" aria-expanded={newChatMenuOpen} onClick={() => setNewChatMenuOpen((open) => !open)}><Plus size={18} /></button>
+              {newChatMenuOpen && <div className="header-new-chat-menu" role="menu">
+                <button type="button" role="menuitem" onClick={openContactDialog}><MessageCircle size={16} /><span><strong>Neuer Chat</strong><small>Mit einer Person beginnen</small></span></button>
+                <button type="button" role="menuitem" onClick={openGroupDialog}><UserRound size={16} /><span><strong>Neue Gruppe</strong><small>Mehrere Kontakte auswählen</small></span></button>
+              </div>}
+            </div>
             <button className="icon-button header-call-button phone-call-button" aria-label={`Sprachanruf mit ${activeChat?.name} starten`} title="Sprachanruf" onClick={() => startCall('audio')}><span className="header-call-emoji" aria-hidden="true">📞</span></button>
             <button className="icon-button header-call-button video-call-button" aria-label={`Videoanruf mit ${activeChat?.name} starten`} title="Videoanruf" onClick={() => startCall('video')}><span className="header-call-emoji" aria-hidden="true">📹</span></button>
             <button className={`icon-button details-toggle ${detailsOpen ? 'selected' : ''}`} aria-label="Sicherheitsdetails anzeigen" title="Sicherheitsdetails" onClick={() => setDetailsOpen((open) => !open)}><SlidersHorizontal size={18} /></button>
@@ -1183,6 +1239,27 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
               <button className="primary-button" type="submit" disabled={contactBusy}>{contactBusy ? 'Suche …' : 'Suchen'} <Search size={16} /></button>
             </form>
             {contactResult && <div className="contact-search-result"><Avatar chat={contactToChat(contactResult)} /><span><strong>{contactResult.display_name}</strong><small>@{contactResult.username}</small></span><button className="primary-button" onClick={addContact} disabled={contactBusy}>Hinzufügen <Plus size={15} /></button></div>}
+          </> : dialog === 'group' ? <>
+            <div className="modal-icon"><UserRound size={20} /></div>
+            <h2 id="modal-title">Neue Gruppe erstellen</h2>
+            <p className="modal-description">Wähle mindestens zwei Kontakte und gib der Gruppe einen Namen.</p>
+            <form className="modal-form" onSubmit={createGroup}>
+              <label>Gruppenname<input value={groupName} onChange={(event) => setGroupName(event.target.value)} placeholder="z. B. Wochenendrunde" maxLength={50} required autoFocus /></label>
+              <fieldset>
+                <legend>Teilnehmer ({groupMembers.length} ausgewählt)</legend>
+                <div className="group-member-list">
+                  {chats.filter((chat) => !chat.isGroup).map((chat) => (
+                    <label className={`group-member-option ${groupMembers.includes(chat.id) ? 'chosen' : ''}`} key={chat.id}>
+                      <input type="checkbox" checked={groupMembers.includes(chat.id)} onChange={() => toggleGroupMember(chat.id)} />
+                      <Avatar chat={chat} size="small" />
+                      <span><strong>{chat.name}</strong><small>{chat.username ? `@${chat.username}` : chat.email}</small></span>
+                      <span className="radio-indicator" aria-hidden="true" />
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <button className="primary-button" type="submit" disabled={!groupName.trim() || groupMembers.length < 2}>Gruppe erstellen <Plus size={16} /></button>
+            </form>
           </> : <>
             <div className="modal-icon"><Settings2 size={20} /></div>
             <h2 id="modal-title">Konto & Sicherheit</h2>

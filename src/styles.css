@@ -79,6 +79,17 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .conversation-person strong { font-size: 13px; }
 .conversation-person span { color: #8b948f; font-size: 10px; }
 .header-actions { display: flex; align-items: center; gap: 7px; margin-left: auto; }
+.header-new-chat-wrap { position: relative; }
+.header-new-chat-button { color: var(--green); background: #edf5ef; border: 1px solid #dbe8df; }
+.header-new-chat-button:hover,
+.header-new-chat-button[aria-expanded="true"] { color: white; background: var(--green); }
+.header-new-chat-menu { position: absolute; z-index: 8; top: calc(100% + 8px); right: 0; width: 220px; padding: 5px; background: white; border: 1px solid #dde5df; border-radius: 8px; box-shadow: 0 14px 40px #1c332520; }
+.header-new-chat-menu button { display: flex; align-items: center; width: 100%; gap: 9px; padding: 9px; color: #607067; text-align: left; background: transparent; border: 0; border-radius: 6px; cursor: pointer; }
+.header-new-chat-menu button:hover { background: #f1f5f2; }
+.header-new-chat-menu button > svg { flex: 0 0 auto; color: var(--green); }
+.header-new-chat-menu button > span { display: flex; flex-direction: column; gap: 3px; }
+.header-new-chat-menu strong { color: #38433d; font-size: 11px; }
+.header-new-chat-menu small { color: #929a95; font-size: 9px; }
 .header-call-button { width: 38px; height: 38px; border: 1px solid #dbe8df; }
 .header-call-emoji { display: grid; place-items: center; width: 100%; height: 100%; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; font-size: 20px; line-height: 1; }
 .phone-call-button { color: white; background: var(--green); }
@@ -343,6 +354,13 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .contact-search-result strong { overflow-wrap: anywhere; font-size: 11px; }
 .contact-search-result small { color: #818a85; font-size: 10px; }
 .contact-search-result .primary-button { flex: 0 0 auto; min-height: 34px; margin: 0; padding: 0 9px; white-space: nowrap; }
+.group-member-list { display: flex; max-height: 220px; flex-direction: column; gap: 7px; overflow-y: auto; }
+.group-member-option { display: flex; align-items: center; gap: 9px; min-height: 54px; padding: 7px 9px; border: 1px solid #e3e8e3; border-radius: 6px; cursor: pointer; }
+.group-member-option.chosen { background: #f5f9f6; border-color: #76a68f; }
+.group-member-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.group-member-option > span:nth-of-type(1) { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+.group-member-option strong { font-size: 11px; }
+.group-member-option small { color: #929a95; font-size: 9px; }
 
 .auth-page { display: grid; min-height: 100dvh; padding: 35px; background: radial-gradient(ellipse at 12% 12%, #e8f1e9 0, transparent 34%), radial-gradient(ellipse at 93% 88%, #f6e8d8 0, transparent 29%), #f8faf7; }
 .auth-layout { display: flex; flex-direction: column; width: min(1050px, 100%); min-height: calc(100dvh - 70px); margin: 0 auto; }
@@ -482,6 +500,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
   .conversation-header { min-height: 62px; gap: 8px; padding: 0 12px; }
   .back-button { display: grid; width: 38px; height: 38px; margin-right: 0; color: var(--green); }
   .header-actions { gap: 2px; }
+  .header-new-chat-button { width: 34px; height: 34px; }
+  .header-new-chat-menu { right: -92px; width: 210px; }
   .header-call-button { width: 34px; height: 34px; }
   .header-actions { margin-left: auto; }
   .header-actions .details-toggle,
