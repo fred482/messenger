@@ -217,6 +217,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
   const [momentMusicName, setMomentMusicName] = useState('')
   const [momentAudience, setMomentAudience] = useState('friends')
   const [momentFeedAudience, setMomentFeedAudience] = useState('friends')
+  const [showMomentoSwitch, setShowMomentoSwitch] = useState(true)
   const messageEnd = useRef(null)
   const localVideoRef = useRef(null)
   const remoteVideoRef = useRef(null)
@@ -280,6 +281,67 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
       .map((post) => ({ ...post, demo: true }))
     return [...ownPosts, ...demoPosts]
   }, [momentoPosts, momentFeedAudience])
+
+  useEffect(() => {
+    if (activeSection !== 'momento') return undefined
+
+    const activityPage = document.querySelector('.activity-page')
+    if (!activityPage) return undefined
+
+    let upwardGestures = 0
+    let wheelGestureActive = false
+    let wheelGestureTimer
+    let touchStartY = null
+    setShowMomentoSwitch(true)
+
+    function hideSwitch() {
+      upwardGestures = 0
+      wheelGestureActive = false
+      window.clearTimeout(wheelGestureTimer)
+      setShowMomentoSwitch(false)
+    }
+
+    function revealAfterUpwardGesture() {
+      upwardGestures += 1
+      if (upwardGestures >= 2) setShowMomentoSwitch(true)
+    }
+
+    function handleWheel(event) {
+      if (event.deltaY > 0) {
+        hideSwitch()
+        return
+      }
+      if (event.deltaY < 0) {
+        if (!wheelGestureActive) revealAfterUpwardGesture()
+        wheelGestureActive = true
+        window.clearTimeout(wheelGestureTimer)
+        wheelGestureTimer = window.setTimeout(() => { wheelGestureActive = false }, 250)
+      }
+    }
+
+    function handleTouchStart(event) {
+      touchStartY = event.touches[0]?.clientY ?? null
+    }
+
+    function handleTouchEnd(event) {
+      const endY = event.changedTouches[0]?.clientY
+      if (touchStartY === null || endY === undefined) return
+      const movement = endY - touchStartY
+      touchStartY = null
+      if (movement < -24) hideSwitch()
+      else if (movement > 24) revealAfterUpwardGesture()
+    }
+
+    activityPage.addEventListener('wheel', handleWheel, { passive: true })
+    activityPage.addEventListener('touchstart', handleTouchStart, { passive: true })
+    activityPage.addEventListener('touchend', handleTouchEnd, { passive: true })
+    return () => {
+      window.clearTimeout(wheelGestureTimer)
+      activityPage.removeEventListener('wheel', handleWheel)
+      activityPage.removeEventListener('touchstart', handleTouchStart)
+      activityPage.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [activeSection])
 
   useEffect(() => {
     if (demoMode) {
@@ -1300,7 +1362,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
 
         {activeSection === 'momento' && <>
           <header className="activity-heading momento-heading"><div><span className="activity-eyebrow">FOTOS, SHORTS & TEXTE</span><h1>Momento</h1><p>Teile Fotos, kurze Videos oder Textnachrichten — alles nur lokal in dieser Sitzung.</p></div></header>
-          <div className="momento-sticky-wrap">
+          <div className={`momento-sticky-wrap ${showMomentoSwitch ? '' : 'is-hidden'}`}>
             <div className="momento-view-switch" role="group" aria-label="Momento-Freigabe und Feed auswählen">
               <button type="button" className={momentFeedAudience === 'friends' ? 'active' : ''} onClick={() => { setMomentFeedAudience('friends'); setMomentAudience('friends') }}>Freunde</button>
               <button type="button" className={momentFeedAudience === 'all' ? 'active' : ''} onClick={() => { setMomentFeedAudience('all'); setMomentAudience('all') }}>Alle Nutzer</button>
