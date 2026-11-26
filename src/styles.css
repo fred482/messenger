@@ -371,6 +371,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .contact-profile-dialog h2 { margin: 13px 0 4px; }
 .contact-profile-dialog > p { margin: 0; color: #818a85; font-size: 12px; }
 .profile-status { width: 100%; margin-top: 21px; padding: 13px; color: #56625a; background: #f5f8f5; border: 1px solid #e8eee8; border-radius: 6px; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.profile-action-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; width: 100%; margin-top: 18px; }
+.profile-action-row .secondary-button { min-width: 0; gap: 5px; padding: 0 5px; font-size: 9px; white-space: nowrap; }
+.profile-action-row .secondary-button svg { flex: 0 0 auto; }
 .profile-edit-form > label input[readonly] { color: #818a85; background: #f7f9f6; }
 .profile-edit-form > label textarea { width: 100%; min-height: 75px; padding: 10px 11px; color: var(--ink); background: white; border: 1px solid #dfe5df; border-radius: 5px; font: inherit; font-size: 12px; resize: vertical; }
 .profile-photo-picker { display: flex; align-items: center; gap: 11px; color: #4a725c; cursor: pointer; }

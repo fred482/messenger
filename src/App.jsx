@@ -184,6 +184,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
   const [profileError, setProfileError] = useState('')
   const [profileBusy, setProfileBusy] = useState(false)
   const [profileDraftName, setProfileDraftName] = useState('')
+  const [profileDraftUsername, setProfileDraftUsername] = useState('')
   const [profileDraftStatus, setProfileDraftStatus] = useState('')
   const [profileDraftImage, setProfileDraftImage] = useState('')
   const [profileImageFile, setProfileImageFile] = useState(null)
@@ -529,6 +530,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
 
   function openProfileEditor() {
     setProfileDraftName(ownProfile.display_name || '')
+    setProfileDraftUsername(ownProfile.username || '')
     setProfileDraftStatus(ownProfile.status_text || '')
     setProfileDraftImage(ownProfile.avatar_url || '')
     setProfileImageFile(null)
@@ -560,6 +562,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
   async function saveProfile(event) {
     event.preventDefault()
     const displayName = profileDraftName.trim()
+    const username = profileDraftUsername.trim().replace(/^@/, '').toLowerCase()
     const statusText = profileDraftStatus.trim()
     if (!displayName) {
       setProfileError('Bitte gib einen Namen ein.')
@@ -567,6 +570,10 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
     }
     if (displayName.length > 80) {
       setProfileError('Der Name darf höchstens 80 Zeichen lang sein.')
+      return
+    }
+    if (!/^[a-z0-9_]{3,24}$/.test(username)) {
+      setProfileError('Der Benutzername muss 3–24 Zeichen lang sein und darf nur Buchstaben, Zahlen und _ enthalten.')
       return
     }
     if (statusText.length > 139) {
@@ -577,6 +584,27 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
     setProfileBusy(true)
     setProfileError('')
     try {
+      if (username !== ownProfile.username) {
+        if (demoMode) {
+          if (chats.some((chat) => chat.username?.toLowerCase() === username)) {
+            setProfileError('Dieser Benutzername ist bereits vergeben.')
+            return
+          }
+        } else {
+          const { data: usernameAvailable, error: usernameError } = await supabase.rpc('is_username_available', {
+            candidate_username: username,
+          })
+          if (usernameError) {
+            setProfileError(`Benutzername konnte nicht geprüft werden: ${usernameError.message}`)
+            return
+          }
+          if (!usernameAvailable) {
+            setProfileError('Dieser Benutzername ist bereits vergeben.')
+            return
+          }
+        }
+      }
+
       let avatarUrl = ownProfile.avatar_url || ''
       if (profileImageFile && !demoMode) {
         const path = `${user.id}/avatar`
@@ -595,6 +623,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
       const updatedProfile = {
         ...ownProfile,
         display_name: displayName,
+        username,
         status_text: statusText,
         avatar_url: avatarUrl,
       }
@@ -603,11 +632,14 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
       } else {
         const { error: updateError } = await supabase.from('profiles').update({
           display_name: displayName,
+          username,
           status_text: statusText,
           avatar_url: avatarUrl,
         }).eq('id', user.id)
         if (updateError) {
-          setProfileError(`Profil konnte nicht gespeichert werden: ${updateError.message}`)
+          setProfileError(updateError.code === '23505'
+            ? 'Dieser Benutzername ist bereits vergeben.'
+            : `Profil konnte nicht gespeichert werden: ${updateError.message}`)
           return
         }
       }
@@ -1423,6 +1455,25 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
               <h2 id="modal-title">{profileTarget.name}</h2>
               {profileTarget.status_text && <div className="profile-status">{profileTarget.status_text}</div>}
               {profileTarget.username && <p>@{profileTarget.username}</p>}
+              {!profileTarget.isGroup && <div className="profile-action-row">
+                <button className="secondary-button" onClick={() => {
+                  const target = profileTarget
+                  setDialog(null)
+                  openChat(target)
+                }}><MessageCircle size={16} /> Nachricht</button>
+                <button className="secondary-button" onClick={() => {
+                  const target = profileTarget
+                  setDialog(null)
+                  openChat(target)
+                  window.setTimeout(() => startCall('audio', target), 0)
+                }}><PhoneCall size={16} /> Anruf</button>
+                <button className="secondary-button" onClick={() => {
+                  const target = profileTarget
+                  setDialog(null)
+                  openChat(target)
+                  window.setTimeout(() => startCall('video', target), 0)
+                }}><Video size={16} /> Videoanruf</button>
+              </div>}
             </div>
           </> : dialog === 'edit-profile' ? <>
             <div className="modal-icon"><UserRound size={20} /></div>
@@ -1437,7 +1488,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
                 <input type="file" accept="image/*" onChange={selectProfileImage} />
               </label>
               <label>Name<input value={profileDraftName} onChange={(event) => setProfileDraftName(event.target.value)} maxLength={80} required /></label>
-              <label>Benutzername<input value={accountUsername ? `@${accountUsername}` : ''} readOnly /></label>
+              <label>Benutzername<input value={profileDraftUsername} onChange={(event) => setProfileDraftUsername(event.target.value)} placeholder="z. B. max_muster" minLength={3} maxLength={24} pattern="[A-Za-z0-9_]{3,24}" autoCapitalize="none" autoCorrect="off" required /></label>
               <label>Status<textarea value={profileDraftStatus} onChange={(event) => setProfileDraftStatus(event.target.value)} maxLength={139} placeholder="Hey! Ich benutze Klartext." rows={3} /></label>
               <small className="profile-character-count">{profileDraftStatus.length}/139</small>
               {profileError && <p className="auth-feedback auth-error" role="alert">{profileError}</p>}
