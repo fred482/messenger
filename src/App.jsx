@@ -897,18 +897,23 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
 
   function publishMoment(event) {
     event.preventDefault()
-    if (!momentImage) {
+    const textOnly = momentMediaType === 'text'
+    if (textOnly && !momentCaption.trim()) {
+      showNotice('Schreibe zuerst eine Textnachricht für deinen Momento-Beitrag.')
+      return
+    }
+    if (!textOnly && !momentImage) {
       showNotice('Wähle zuerst ein Bild für deinen Momento-Beitrag aus.')
       return
     }
     setMomentoPosts((current) => [{
       id: Date.now(),
-      image: momentImage,
+      image: textOnly ? '' : momentImage,
       mediaType: momentMediaType,
       maxDuration: momentMediaType === 'video' ? 80 : null,
-      filter: momentFilter,
-      music: momentMusic,
-      musicName: momentMusicName,
+      filter: textOnly ? 'none' : momentFilter,
+      music: textOnly ? '' : momentMusic,
+      musicName: textOnly ? '' : momentMusicName,
       audience: momentAudience,
       caption: momentCaption.trim(),
       likes: 0,
@@ -1294,13 +1299,15 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
         </>}
 
         {activeSection === 'momento' && <>
-          <header className="activity-heading momento-heading"><div><span className="activity-eyebrow">FOTOS & SHORTS</span><h1>Momento</h1><p>Teile Fotos oder kurze Videos mit Filtern und Hintergrundmusik — alles nur lokal in dieser Sitzung.</p></div></header>
-          <div className="momento-view-switch" role="group" aria-label="Momento-Freigabe und Feed auswählen">
-            <button type="button" className={momentFeedAudience === 'friends' ? 'active' : ''} onClick={() => { setMomentFeedAudience('friends'); setMomentAudience('friends') }}>Freunde</button>
-            <button type="button" className={momentFeedAudience === 'all' ? 'active' : ''} onClick={() => { setMomentFeedAudience('all'); setMomentAudience('all') }}>Alle Nutzer</button>
+          <header className="activity-heading momento-heading"><div><span className="activity-eyebrow">FOTOS, SHORTS & TEXTE</span><h1>Momento</h1><p>Teile Fotos, kurze Videos oder Textnachrichten — alles nur lokal in dieser Sitzung.</p></div></header>
+          <div className="momento-sticky-wrap">
+            <div className="momento-view-switch" role="group" aria-label="Momento-Freigabe und Feed auswählen">
+              <button type="button" className={momentFeedAudience === 'friends' ? 'active' : ''} onClick={() => { setMomentFeedAudience('friends'); setMomentAudience('friends') }}>Freunde</button>
+              <button type="button" className={momentFeedAudience === 'all' ? 'active' : ''} onClick={() => { setMomentFeedAudience('all'); setMomentAudience('all') }}>Alle Nutzer</button>
+            </div>
           </div>
-          <form className="momento-composer" onSubmit={publishMoment}>
-            <label className="momento-image-picker">
+          <form className={`momento-composer ${momentMediaType === 'text' ? 'text-only' : ''}`} onSubmit={publishMoment}>
+            {momentMediaType !== 'text' && <label className="momento-image-picker">
               {momentImage ? (momentMediaType === 'video'
                 ? <video
                     className={`momento-preview filter-${momentFilter}`}
@@ -1319,7 +1326,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
                 : <><ImagePlus size={25} /><span>Foto oder Short auswählen · max. 1:20 Min.</span></>}
               {momentImage && momentFilter === 'dog' && <span className="momento-dog-overlay" aria-hidden="true"><i className="dog-ear dog-ear-left" /><i className="dog-ear dog-ear-right" /><i className="dog-nose" /></span>}
               <input type="file" accept="image/*,video/*" onChange={selectMomentImage} />
-            </label>
+            </label>}
             <div className="momento-compose-fields">
               <div className="momento-audience-switch" role="group" aria-label="Sichtbarkeit des Beitrags">
                 <button type="button" className={momentAudience === 'friends' ? 'active' : ''} onClick={() => setMomentAudience('friends')}>Mit Freunden teilen</button>
@@ -1328,18 +1335,21 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
               <div className="momento-type-switch" role="group" aria-label="Beitragsart">
                 <button type="button" className={momentMediaType === 'image' ? 'active' : ''} onClick={() => setMomentMediaType('image')}><ImagePlus size={14} /> Foto</button>
                 <button type="button" className={momentMediaType === 'video' ? 'active' : ''} onClick={() => setMomentMediaType('video')}><Camera size={14} /> Short</button>
+                <button type="button" className={momentMediaType === 'text' ? 'active' : ''} onClick={() => setMomentMediaType('text')}><MessageCircle size={14} /> Text</button>
               </div>
-              <div className="momento-filter-row" aria-label="Filter">
+              {momentMediaType !== 'text' && <div className="momento-filter-row" aria-label="Filter">
                 {['none', 'warm', 'cool', 'vintage', 'dog'].map((filter) => (
                   <button type="button" key={filter} className={`momento-filter filter-${filter} ${momentFilter === filter ? 'active' : ''}`} onClick={() => setMomentFilter(filter)}>
                     {filter === 'none' ? 'Original' : filter === 'warm' ? 'Warm' : filter === 'cool' ? 'Kühl' : filter === 'vintage' ? 'Vintage' : 'Hunde'}
                   </button>
                 ))}
-              </div>
-              <textarea value={momentCaption} onChange={(event) => setMomentCaption(event.target.value)} maxLength={240} placeholder="Beschreibung oder Caption…" aria-label="Bild- oder Videobeschreibung" />
-              <label className="momento-music-button"><Music size={15} /><span>{momentMusicName || 'Hintergrundmusik wählen'}</span><input type="file" accept="audio/*" onChange={selectMomentMusic} /></label>
-              {momentMusic && <audio controls src={momentMusic} className="momento-music-preview" />}
-              <button className="primary-button" type="submit" disabled={!momentImage}>In Momento teilen <Send size={15} /></button>
+              </div>}
+              <textarea value={momentCaption} onChange={(event) => setMomentCaption(event.target.value)} maxLength={240} placeholder={momentMediaType === 'text' ? 'Was möchtest du teilen?' : 'Beschreibung oder Caption…'} aria-label={momentMediaType === 'text' ? 'Textnachricht' : 'Bild- oder Videobeschreibung'} required={momentMediaType === 'text'} />
+              {momentMediaType !== 'text' && <>
+                <label className="momento-music-button"><Music size={15} /><span>{momentMusicName || 'Hintergrundmusik wählen'}</span><input type="file" accept="audio/*" onChange={selectMomentMusic} /></label>
+                {momentMusic && <audio controls src={momentMusic} className="momento-music-preview" />}
+              </>}
+              <button className="primary-button" type="submit" disabled={momentMediaType === 'text' ? !momentCaption.trim() : !momentImage}>{momentMediaType === 'text' ? 'Text teilen' : 'In Momento teilen'} <Send size={15} /></button>
             </div>
           </form>
           <section className="momento-feed-section">
@@ -1354,22 +1364,22 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
                 const authorColor = post.demo ? `account-avatar avatar-${demoChat?.color}` : 'account-avatar'
                 return (
                   <article className="momento-post" key={post.id}>
-                    <header><div className={authorColor}>{authorInitial}</div><strong>{authorName}</strong><span>{post.mediaType === 'video' ? 'Short' : 'Foto'} · gerade eben</span></header>
-                    <div className="momento-post-media-wrap">
+                    <header><div className={authorColor}>{authorInitial}</div><strong>{authorName}</strong><span>{post.mediaType === 'video' ? 'Short' : post.mediaType === 'text' ? 'Text' : 'Foto'} · gerade eben</span></header>
+                    {post.mediaType === 'text' ? <div className="momento-text-content">{post.caption}</div> : <div className="momento-post-media-wrap">
                       {post.image
                         ? post.mediaType === 'video'
                           ? <video className={`momento-post-media filter-${post.filter}`} src={post.image} controls playsInline />
                           : <img className={`momento-post-media filter-${post.filter}`} src={post.image} alt={post.caption || 'Lokaler Momento-Beitrag'} />
                         : <div className={`momento-demo-media momento-demo-${post.filter}`}><ImagePlus size={28} /><span>{post.caption}</span></div>}
                       {post.filter === 'dog' && <span className="momento-dog-overlay" aria-hidden="true"><i className="dog-ear dog-ear-left" /><i className="dog-ear dog-ear-right" /><i className="dog-nose" /></span>}
-                    </div>
+                    </div>}
                     <div className="momento-post-actions"><button className={post.liked ? 'liked' : ''} onClick={() => post.demo ? null : toggleMomentLike(post.id)} aria-label={post.liked ? 'Gefällt mir entfernen' : 'Gefällt mir'}><Heart size={18} fill={post.liked ? 'currentColor' : 'none'} /></button><span>{post.likes} gefällt das</span></div>
-                    {post.caption && <p><strong>{authorName}</strong> {post.caption}</p>}
+                    {post.caption && post.mediaType !== 'text' && <p><strong>{authorName}</strong> {post.caption}</p>}
                     {post.music && <div className="momento-post-music"><Music size={14} /><span>{post.musicName}</span><audio controls src={post.music} /></div>}
                   </article>
                 )
               })}
-            </div> : <div className="activity-empty"><ImagePlus size={27} /><strong>Dein Momento-Feed</strong><span>Wähle oben ein Foto oder einen Short aus und teile deinen ersten Moment.</span></div>}
+            </div> : <div className="activity-empty"><ImagePlus size={27} /><strong>Dein Momento-Feed</strong><span>Wähle oben ein Foto, einen Short oder einen Text aus und teile deinen ersten Moment.</span></div>}
           </section>
         </>}
 
