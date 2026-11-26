@@ -49,6 +49,8 @@ const initialChats = [
   {
     id: 'lena',
     name: 'Lena Hoffmann',
+    username: 'lena_hoffmann',
+    status_text: 'Ein schöner Abend am Meer',
     email: 'lena.hoffmann@posteo.de',
     initials: 'LH',
     color: 'coral',
@@ -67,6 +69,8 @@ const initialChats = [
   {
     id: 'jonas',
     name: 'Jonas Richter',
+    username: 'jonas_richter',
+    status_text: 'Neue Fotos aus dem Wochenende',
     email: 'jonas.richter@mailbox.org',
     initials: 'JR',
     color: 'blue',
@@ -81,6 +85,8 @@ const initialChats = [
   {
     id: 'amira',
     name: 'Amira Yilmaz',
+    username: 'amira_yilmaz',
+    status_text: 'Das Rezept ist fertig!',
     email: 'amira.yilmaz@posteo.de',
     initials: 'AY',
     color: 'green',
@@ -125,7 +131,7 @@ const demoMomentoPosts = [
 function Avatar({ chat, size = 'normal' }) {
   return (
     <div className={`avatar avatar-${chat.color} avatar-${size}`} aria-hidden="true">
-      {chat.initials}
+      {chat.avatar_url ? <img src={chat.avatar_url} alt="" /> : chat.initials}
       {chat.online && <span className="online-dot" />}
     </div>
   )
@@ -138,6 +144,8 @@ function contactToChat(profile) {
     id: profile.id,
     username: profile.username,
     name,
+    avatar_url: profile.avatar_url ?? '',
+    status_text: profile.status_text ?? '',
     email: `@${profile.username}`,
     initials,
     color: 'blue',
@@ -172,6 +180,13 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
   const [message, setMessage] = useState('')
   const [detailsOpen, setDetailsOpen] = useState(() => window.matchMedia('(min-width: 1081px)').matches)
   const [dialog, setDialog] = useState(null)
+  const [profileTarget, setProfileTarget] = useState(null)
+  const [profileError, setProfileError] = useState('')
+  const [profileBusy, setProfileBusy] = useState(false)
+  const [profileDraftName, setProfileDraftName] = useState('')
+  const [profileDraftStatus, setProfileDraftStatus] = useState('')
+  const [profileDraftImage, setProfileDraftImage] = useState('')
+  const [profileImageFile, setProfileImageFile] = useState(null)
   const [newChatMenuOpen, setNewChatMenuOpen] = useState(false)
   const [contactDialogPurpose, setContactDialogPurpose] = useState('chat')
   const [groupName, setGroupName] = useState('')
@@ -232,9 +247,17 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
     return []
   })
 
+  const [ownProfile, setOwnProfile] = useState(() => ({
+    id: user?.id,
+    username: user?.user_metadata?.username || (demoMode ? 'deine_vorschau' : ''),
+    display_name: user?.user_metadata?.full_name || user?.email || 'Dein Konto',
+    avatar_url: '',
+    status_text: '',
+  }))
+
   const accountEmail = user?.email ?? ''
-  const accountUsername = user?.user_metadata?.username
-  const accountName = user?.user_metadata?.full_name || accountEmail || 'Dein Konto'
+  const accountUsername = ownProfile.username
+  const accountName = ownProfile.display_name || 'Dein Konto'
   const accountInitial = accountName.charAt(0).toUpperCase()
   const activeChat = chats.find((chat) => chat.id === activeId) ?? chats[0]
   const visibleChats = useMemo(() => {
@@ -256,6 +279,37 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
       .map((post) => ({ ...post, demo: true }))
     return [...ownPosts, ...demoPosts]
   }, [momentoPosts, momentFeedAudience])
+
+  useEffect(() => {
+    if (demoMode) {
+      try {
+        const savedProfile = window.localStorage.getItem(`klartext-profile:${user.id}`)
+        if (savedProfile) {
+          const parsed = JSON.parse(savedProfile)
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            setOwnProfile((current) => ({ ...current, ...parsed }))
+          }
+        }
+      } catch (loadError) {
+        showNotice(`Dein Profil konnte nicht geladen werden: ${loadError instanceof Error ? loadError.message : 'Ungültige lokale Profildaten.'}`)
+      }
+      return undefined
+    }
+
+    if (!supabase) return undefined
+    let active = true
+    supabase.rpc('get_my_profile').then(({ data, error }) => {
+      if (!active) return
+      if (error) {
+        showNotice(`Dein Profil konnte nicht geladen werden: ${error.message}`)
+        return
+      }
+      if (data?.[0]) setOwnProfile((current) => ({ ...current, ...data[0] }))
+    }).catch((loadError) => {
+      if (active) showNotice(`Dein Profil konnte nicht geladen werden: ${loadError instanceof Error ? loadError.message : 'Unbekannter Fehler.'}`)
+    })
+    return () => { active = false }
+  }, [demoMode, supabase, user.id])
 
   function showNotice(text) {
     setNotice(text)
@@ -470,6 +524,101 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
       if (error) showNotice(`Abmelden nicht möglich: ${error.message}`)
     } catch (signOutError) {
       showNotice(`Abmelden nicht möglich: ${signOutError instanceof Error ? signOutError.message : 'Unbekannter Fehler.'}`)
+    }
+  }
+
+  function openProfileEditor() {
+    setProfileDraftName(ownProfile.display_name || '')
+    setProfileDraftStatus(ownProfile.status_text || '')
+    setProfileDraftImage(ownProfile.avatar_url || '')
+    setProfileImageFile(null)
+    setProfileError('')
+    setDialog('edit-profile')
+  }
+
+  function openContactProfile(chat) {
+    setProfileTarget(chat)
+    setDialog('contact-profile')
+  }
+
+  async function selectProfileImage(event) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    try {
+      if (file.size > 2 * 1024 * 1024) throw new Error('Das Profilbild darf höchstens 2 MB groß sein.')
+      const image = await getLocalImage(file)
+      setProfileDraftImage(image)
+      setProfileImageFile(file)
+      setProfileError('')
+    } catch (imageError) {
+      setProfileError(imageError instanceof Error ? imageError.message : 'Das Profilbild konnte nicht geladen werden.')
+    }
+  }
+
+  async function saveProfile(event) {
+    event.preventDefault()
+    const displayName = profileDraftName.trim()
+    const statusText = profileDraftStatus.trim()
+    if (!displayName) {
+      setProfileError('Bitte gib einen Namen ein.')
+      return
+    }
+    if (displayName.length > 80) {
+      setProfileError('Der Name darf höchstens 80 Zeichen lang sein.')
+      return
+    }
+    if (statusText.length > 139) {
+      setProfileError('Der Status darf höchstens 139 Zeichen lang sein.')
+      return
+    }
+
+    setProfileBusy(true)
+    setProfileError('')
+    try {
+      let avatarUrl = ownProfile.avatar_url || ''
+      if (profileImageFile && !demoMode) {
+        const path = `${user.id}/avatar`
+        const { error: uploadError } = await supabase.storage
+          .from('profile-photos')
+          .upload(path, profileImageFile, { upsert: true, contentType: profileImageFile.type, cacheControl: '3600' })
+        if (uploadError) {
+          setProfileError(`Profilbild konnte nicht hochgeladen werden: ${uploadError.message}`)
+          return
+        }
+        avatarUrl = supabase.storage.from('profile-photos').getPublicUrl(path).data.publicUrl
+      } else if (profileImageFile) {
+        avatarUrl = profileDraftImage
+      }
+
+      const updatedProfile = {
+        ...ownProfile,
+        display_name: displayName,
+        status_text: statusText,
+        avatar_url: avatarUrl,
+      }
+      if (demoMode) {
+        window.localStorage.setItem(`klartext-profile:${user.id}`, JSON.stringify(updatedProfile))
+      } else {
+        const { error: updateError } = await supabase.from('profiles').update({
+          display_name: displayName,
+          status_text: statusText,
+          avatar_url: avatarUrl,
+        }).eq('id', user.id)
+        if (updateError) {
+          setProfileError(`Profil konnte nicht gespeichert werden: ${updateError.message}`)
+          return
+        }
+      }
+
+      setOwnProfile(updatedProfile)
+      setDialog(null)
+      showNotice('Dein Profil wurde gespeichert.')
+    } catch (saveError) {
+      setProfileError(`Profil konnte nicht gespeichert werden: ${saveError instanceof Error ? saveError.message : 'Unbekannter Fehler.'}`)
+    } finally {
+      setProfileBusy(false)
     }
   }
 
@@ -910,7 +1059,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
         </div>
 
         <div className="account-chip">
-          <div className="account-avatar">{accountInitial}</div>
+          <div className="account-avatar">{ownProfile.avatar_url ? <img src={ownProfile.avatar_url} alt="" /> : accountInitial}</div>
           <div className="account-copy"><strong>{accountName}</strong><span>{accountUsername ? `@${accountUsername}` : accountEmail}</span></div>
           <ChevronDown size={16} className="muted-icon" />
         </div>
@@ -1064,7 +1213,7 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
           {visibleContacts.length > 0 ? <div className="contact-list">
             {visibleContacts.map((chat) => (
               <article className="contact-row" key={chat.id}>
-                <button className="contact-profile-button" onClick={() => openChat(chat)}>
+                <button className="contact-profile-button" onClick={() => openContactProfile(chat)} aria-label={`Profil von ${chat.name} ansehen`}>
                   <Avatar chat={chat} />
                   <span className="contact-copy"><strong>{chat.name}</strong><small>{chat.username ? `@${chat.username}` : chat.email}</small></span>
                 </button>
@@ -1195,7 +1344,11 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
         {activeSection === 'settings' && <>
           <header className="activity-heading"><div><span className="activity-eyebrow">DEIN KONTO</span><h1>Einstellungen</h1><p>Verwalte dein Konto und die lokale Vorschau.</p></div></header>
           <section className="settings-card">
-            <div className="settings-profile"><div className="account-avatar">{accountInitial}</div><div><strong>{accountName}</strong><span>{accountUsername ? `@${accountUsername}` : accountEmail}</span></div></div>
+            <div className="settings-profile">
+              <div className="account-avatar">{ownProfile.avatar_url ? <img src={ownProfile.avatar_url} alt="" /> : accountInitial}</div>
+              <div className="settings-profile-copy"><strong>{accountName}</strong><small>{ownProfile.status_text || 'Kein Status gesetzt'}</small><span>{accountUsername ? `@${accountUsername}` : 'Benutzername nicht verfügbar'}</span></div>
+            </div>
+            <button className="secondary-button" onClick={openProfileEditor}><UserRound size={16} /> Profil bearbeiten</button>
             <div className="local-prototype-note"><LockKeyhole size={16} /><span>Status- und Momento-Bilder sind nur in dieser Sitzung sichtbar und werden weder gespeichert noch geteilt. Nachrichten und Anrufe sind Demo-Funktionen.</span></div>
             <button className="primary-button" onClick={onOpenLocalPreview}><Palette size={16} /> Chat-Oberfläche bearbeiten</button>
             {isAdmin && <button className="secondary-button" onClick={onOpenAdmin}><Settings2 size={16} /> Chat bearbeiten (Admin)</button>}
@@ -1264,7 +1417,33 @@ function App({ user, supabase, siteSettings, isAdmin, onOpenAdmin, onOpenLocalPr
       {dialog && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setDialog(null) }}>
         <section className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
           <button className="icon-button modal-close" aria-label="Schließen" onClick={() => setDialog(null)}><X size={18} /></button>
-          {dialog === 'contact' ? <>
+          {dialog === 'contact-profile' && profileTarget ? <>
+            <div className="contact-profile-dialog">
+              <Avatar chat={profileTarget} size="large" />
+              <h2 id="modal-title">{profileTarget.name}</h2>
+              {profileTarget.status_text && <div className="profile-status">{profileTarget.status_text}</div>}
+              {profileTarget.username && <p>@{profileTarget.username}</p>}
+            </div>
+          </> : dialog === 'edit-profile' ? <>
+            <div className="modal-icon"><UserRound size={20} /></div>
+            <h2 id="modal-title">Profil bearbeiten</h2>
+            <p className="modal-description">Passe deinen Namen, dein Profilfoto und deinen Status an.</p>
+            <form className="modal-form profile-edit-form" onSubmit={saveProfile}>
+              <label className="profile-photo-picker">
+                <span className="profile-photo-preview">
+                  {profileDraftImage ? <img src={profileDraftImage} alt="Profilvorschau" /> : <Camera size={23} />}
+                </span>
+                <span>Profilfoto hinzufügen · max. 2 MB</span>
+                <input type="file" accept="image/*" onChange={selectProfileImage} />
+              </label>
+              <label>Name<input value={profileDraftName} onChange={(event) => setProfileDraftName(event.target.value)} maxLength={80} required /></label>
+              <label>Benutzername<input value={accountUsername ? `@${accountUsername}` : ''} readOnly /></label>
+              <label>Status<textarea value={profileDraftStatus} onChange={(event) => setProfileDraftStatus(event.target.value)} maxLength={139} placeholder="Hey! Ich benutze Klartext." rows={3} /></label>
+              <small className="profile-character-count">{profileDraftStatus.length}/139</small>
+              {profileError && <p className="auth-feedback auth-error" role="alert">{profileError}</p>}
+              <button className="primary-button" type="submit" disabled={profileBusy}>{profileBusy ? 'Speichern …' : 'Änderungen speichern'} <Check size={16} /></button>
+            </form>
+          </> : dialog === 'contact' ? <>
             <div className="modal-icon"><Plus size={20} /></div>
             <h2 id="modal-title">{contactDialogPurpose === 'contact' ? 'Neuen Kontakt hinzufügen' : 'Neuen Chat starten'}</h2>
             <p className="modal-description">{contactDialogPurpose === 'contact' ? 'Finde einen neuen Kontakt per Benutzername. Die Person muss bereits ein Konto erstellt haben.' : 'Suche nach dem eindeutigen Benutzernamen. Die Person muss bereits ein Konto erstellt haben.'}</p>

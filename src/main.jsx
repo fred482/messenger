@@ -126,8 +126,8 @@ function Root() {
   const [siteSettings, setSiteSettings] = useState(defaultSiteSettings)
   const [settingsError, setSettingsError] = useState('')
   const [localPreview, setLocalPreview] = useState(() => window.location.hash === '#/preview')
-  const [localDemo, setLocalDemo] = useState(() => window.location.hash === '#/demo-chat')
-  const [demoAuth, setDemoAuth] = useState(() => window.location.hash === '#/demo' || window.location.hash === '#/demo-auth')
+  const [localDemo, setLocalDemo] = useState(() => window.location.hash === '#/demo' || window.location.hash === '#/demo-chat')
+  const [demoAuth, setDemoAuth] = useState(() => window.location.hash === '#/demo-auth')
   const [previewSettings, setPreviewSettings] = useState(defaultSiteSettings)
   const [previewError, setPreviewError] = useState('')
   const [previewLoaded, setPreviewLoaded] = useState(false)
@@ -136,8 +136,8 @@ function Root() {
   useEffect(() => {
     const updateRoute = () => {
       setLocalPreview(window.location.hash === '#/preview')
-      setLocalDemo(window.location.hash === '#/demo-chat')
-      setDemoAuth(window.location.hash === '#/demo' || window.location.hash === '#/demo-auth')
+      setLocalDemo(window.location.hash === '#/demo' || window.location.hash === '#/demo-chat')
+      setDemoAuth(window.location.hash === '#/demo-auth')
     }
     window.addEventListener('hashchange', updateRoute)
     return () => window.removeEventListener('hashchange', updateRoute)

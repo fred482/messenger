@@ -264,7 +264,7 @@ export function AuthScreen({ supabase, siteSettings = defaultSiteSettings, demoM
             <p className="auth-form-footnote"><ShieldCheck size={13} /> Die Anmeldung wird sicher von Supabase verwaltet.</p>
           </div>
         </div>
-        <footer className="auth-footer"><span>KLARTEXT MESSENGER</span><span className="auth-footer-links"><a href="#/demo">Demo mit Anmeldung testen</a><a href="#/demo-chat">Chat testen</a><a href="#/preview">Chat-Oberfläche bearbeiten</a></span></footer>
+        <footer className="auth-footer"><span>KLARTEXT MESSENGER</span><span className="auth-footer-links"><a href="#/demo">Demo öffnen</a><a href="#/demo-auth">Demo mit Anmeldung testen</a><a href="#/preview">Chat-Oberfläche bearbeiten</a></span></footer>
       </section>
     </main>
   )

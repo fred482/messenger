@@ -31,6 +31,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .sidebar-more { margin-left: auto; }
 .account-chip { display: flex; align-items: center; gap: 10px; margin: 23px 0 29px; padding: 10px 8px; background: white; border: 1px solid #e9ece8; border-radius: 8px; }
 .account-avatar { display: grid; place-items: center; flex: 0 0 auto; width: 35px; height: 35px; color: #83583d; background: #f1dbc6; border-radius: 50%; font-weight: 700; }
+.account-avatar img, .avatar img { width: 100%; height: 100%; border-radius: inherit; object-fit: cover; }
 .account-copy { display: flex; flex-direction: column; min-width: 0; gap: 2px; flex: 1; }
 .account-copy strong { font-size: 12px; font-weight: 700; }
 .account-copy span { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
@@ -267,9 +268,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .momento-post > p { margin: 3px 10px 12px; color: #56625a; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
 .settings-card { display: flex; flex-direction: column; gap: 15px; padding: 18px; background: white; border: 1px solid #e7ece7; border-radius: 9px; }
 .settings-profile { display: flex; align-items: center; gap: 11px; padding-bottom: 14px; border-bottom: 1px solid #edf0ed; }
-.settings-profile > div:last-child { display: flex; flex-direction: column; gap: 4px; }
+.settings-profile-copy { display: flex; flex-direction: column; gap: 4px; }
 .settings-profile strong { font-size: 12px; }
 .settings-profile span { color: #858f89; font-size: 10px; }
+.settings-profile small { color: #68766d; font-size: 10px; }
 .local-prototype-note { display: flex; align-items: flex-start; gap: 9px; padding: 11px; color: #6a7d71; background: #f1f6f2; border-radius: 6px; font-size: 10px; line-height: 1.5; }
 .local-prototype-note svg { flex: 0 0 auto; color: var(--green); }
 .settings-card .primary-button, .settings-card .secondary-button { width: 100%; margin-top: 0; }
@@ -365,6 +367,18 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .contact-search-result strong { overflow-wrap: anywhere; font-size: 11px; }
 .contact-search-result small { color: #818a85; font-size: 10px; }
 .contact-search-result .primary-button { flex: 0 0 auto; min-height: 34px; margin: 0; padding: 0 9px; white-space: nowrap; }
+.contact-profile-dialog { display: flex; flex-direction: column; align-items: center; padding: 10px 0 2px; text-align: center; }
+.contact-profile-dialog h2 { margin: 13px 0 4px; }
+.contact-profile-dialog > p { margin: 0; color: #818a85; font-size: 12px; }
+.profile-status { width: 100%; margin-top: 21px; padding: 13px; color: #56625a; background: #f5f8f5; border: 1px solid #e8eee8; border-radius: 6px; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.profile-edit-form > label input[readonly] { color: #818a85; background: #f7f9f6; }
+.profile-edit-form > label textarea { width: 100%; min-height: 75px; padding: 10px 11px; color: var(--ink); background: white; border: 1px solid #dfe5df; border-radius: 5px; font: inherit; font-size: 12px; resize: vertical; }
+.profile-photo-picker { display: flex; align-items: center; gap: 11px; color: #4a725c; cursor: pointer; }
+.profile-photo-picker > span:last-of-type { font-size: 11px; font-weight: 600; }
+.profile-photo-picker input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); }
+.profile-photo-preview { display: grid; place-items: center; width: 58px; height: 58px; overflow: hidden; color: var(--green); background: #edf5ef; border-radius: 50%; }
+.profile-photo-preview img { width: 100%; height: 100%; object-fit: cover; }
+.profile-character-count { align-self: flex-end; margin-top: -11px; color: #929a95; font-size: 9px; }
 .group-member-list { display: flex; max-height: 220px; flex-direction: column; gap: 7px; overflow-y: auto; }
 .group-member-option { display: flex; align-items: center; gap: 9px; min-height: 54px; padding: 7px 9px; border: 1px solid #e3e8e3; border-radius: 6px; cursor: pointer; }
 .group-member-option.chosen { background: #f5f9f6; border-color: #76a68f; }
