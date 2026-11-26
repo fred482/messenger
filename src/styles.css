@@ -85,7 +85,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
 .conversation-header { z-index: 1; display: flex; align-items: center; min-height: 68px; gap: 10px; padding: 0 22px; background: #ffffffed; border-bottom: 1px solid var(--line); }
 .back-button { display: none; }
 .conversation-person { display: flex; flex: 1; flex-direction: column; min-width: 0; gap: 3px; }
-.conversation-person strong { font-size: 13px; }
+.conversation-name-button { align-self: flex-start; padding: 0; color: var(--ink); background: transparent; border: 0; font-size: 13px; font-weight: 700; text-align: left; cursor: pointer; }
+.conversation-name-button:hover { color: var(--green); }
 .conversation-person span { color: #8b948f; font-size: 10px; }
 .header-actions { display: flex; align-items: center; gap: 7px; margin-left: auto; }
 .header-new-chat-wrap { position: relative; }
@@ -538,7 +539,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid #68a88f; outline-
   .header-menu-button { display: none; }
   .encryption-pill { gap: 4px; padding: 6px; font-size: 8px; }
   .conversation-header > .avatar { width: 32px; height: 32px; }
-  .conversation-person strong { font-size: 12px; }
+  .conversation-name-button { font-size: 12px; }
   .demo-banner { gap: 7px; margin: 10px 10px 0; padding: 8px; font-size: 9px; }
   .message-scroll { padding: 15px 12px 18px; overscroll-behavior: contain; }
   .secure-note { max-width: 100%; padding: 9px 10px; }
